@@ -1,4 +1,4 @@
-name := flower
+name := transfer
 
 source_url := https://github.com/googlecodelabs/tensorflow-for-poets-2
 images_url := http://download.tensorflow.org/example_images/flower_photos.tgz
