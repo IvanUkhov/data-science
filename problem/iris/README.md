@@ -1,3 +1,3 @@
 # [Iris]
 
-[iris]: https://www.youtube.com/watch?v=tNa99PG8hR8
+[iris]: http://archive.ics.uci.edu/ml/datasets/Iris
