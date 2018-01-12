@@ -13,9 +13,12 @@ setup: data
 shell:
 	docker exec -it ${name} /bin/bash
 
+board:
+	docker exec -it ${name} tensorboard --logdir=/problem/model
+
 data:
 	mkdir -p data
 	curl -L ${source}/${name}.data -o data/major.csv
 	curl -L ${source}/${name}.test -o data/minor.csv
 
-.PHONY: setup shell start
+.PHONY: board setup shell start
