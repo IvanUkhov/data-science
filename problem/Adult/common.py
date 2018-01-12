@@ -1,7 +1,15 @@
+import collections
 import pandas as pd
 
 
-def feature_names():
+def column_defaults():
+    defaults = []
+    categorical_names = column_variants().keys()
+    for name in column_names():
+        defaults.append((name, ['' if name in categorical_names else 0]))
+    return collections.OrderedDict(defaults)
+
+def column_names():
     return [
         'Age',
         'WorkClass',
@@ -20,7 +28,7 @@ def feature_names():
         'Income',
     ]
 
-def feature_variants():
+def column_variants():
     return {
         'Education': [
             '10th',
@@ -144,7 +152,7 @@ def feature_variants():
     }
 
 def load_dataset(path, **arguments):
-    data = pd.read_csv(path, names=feature_names(), sep=r'\s*,\s*',
+    data = pd.read_csv(path, names=column_names(), sep=r'\s*,\s*',
                        engine='python', na_values='?', index_col=False,
                        **arguments)
     data['Income'] = data['Income'].map({
