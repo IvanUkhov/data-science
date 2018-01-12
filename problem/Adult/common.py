@@ -4,24 +4,30 @@ import pandas as pd
 def feature_names():
     return [
         'Age',
-        'Work class',
-        'Final sampling weight',
+        'WorkClass',
+        'FinalSamplingWeight',
         'Education',
-        'Education number',
-        'Marital status',
+        'EducationNumber',
+        'MaritalStatus',
         'Occupation',
         'Relationship',
         'Race',
         'Sex',
-        'Capital gain',
-        'Capital loss',
-        'Hours per week',
-        'Native country',
+        'CapitalGain',
+        'CapitalLoss',
+        'HoursPerWeek',
+        'NativeCountry',
         'Income',
     ]
 
-def load_dataset(path):
+def load_dataset(path, **arguments):
     data = pd.read_csv(path, names=feature_names(), sep=r'\s*,\s*',
-                       engine='python', skiprows=[0], na_values='?')
-    data['Income'] = data['Income'].map({'<=50K.': 'Low', '>50K.': 'High'})
+                       engine='python', na_values='?', index_col=False,
+                       **arguments)
+    data['Income'] = data['Income'].map({
+        '<=50K.': 'Low',
+        '<=50K': 'Low',
+        '>50K.': 'High',
+        '>50K': 'High',
+    })
     return data
