@@ -1,7 +1,8 @@
 import os
 import sys
 
-sys.path.append(os.path.join('facets/facets_overview/python'))
+sys.path.append(os.path.join(os.path.dirname(__file__),
+                             'source/facets_overview/python'))
 
 import base64
 

@@ -1,0 +1,3 @@
+[submodule "package/facets/source"]
+	path = package/facets/source
+	url = https://github.com/PAIR-code/facets
