@@ -18,7 +18,7 @@ board:
 
 data:
 	mkdir -p data
-	curl -L ${source}/${name}.data -o data/major.csv
-	curl -L ${source}/${name}.test -o data/minor.csv
+	curl -L ${source}/${name}.data -o data/train.csv
+	curl -L ${source}/${name}.test -o data/test.csv
 
 .PHONY: board setup shell start
