@@ -182,3 +182,18 @@ def plot_confusion(data, **arguments):
                     horizontalalignment='center', color=color)
     pp.ylabel('Observed')
     pp.xlabel('Predicted')
+
+def print_confusion(data):
+    def _print(name, value):
+        print('{}: {:.2f}%'.format(name, 100 * value))
+    true_positive = data.iloc[1, 1]
+    true_negative = data.iloc[0, 0]
+    false_positive = data.iloc[0, 1]
+    false_negative = data.iloc[1, 0]
+    total = true_positive + false_negative + true_negative + false_positive
+    _print('Accuracy', (true_positive + true_negative) / total)
+    _print('Precision', true_positive / (true_positive + false_positive))
+    _print('True positive rate (sensitivity, recall)',
+            true_positive / (true_positive + false_negative))
+    _print('True negative rate (specificity)',
+            true_negative / (true_negative + false_positive))
