@@ -15,7 +15,7 @@ shell:
 	docker exec -it ${name} /bin/bash
 
 board:
-	docker exec -it ${name} tensorboard --logdir=/problem/model
+	docker exec -it ${name} tensorboard --logdir=/tmp/model
 
 data:
 	mkdir -p data
