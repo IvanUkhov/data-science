@@ -1,4 +1,6 @@
 import collections
+import matplotlib.pyplot as pp
+import numpy as np
 import pandas as pd
 
 
@@ -151,6 +153,10 @@ def column_variants():
         ],
     }
 
+def drop_missing(data):
+    data.dropna(inplace=True)
+    data.index = pd.RangeIndex(len(data.index))
+
 def load_dataset(path, **arguments):
     data = pd.read_csv(path, names=column_names(), sep=r'\s*,\s*',
                        engine='python', na_values='?', index_col=False,
@@ -162,3 +168,17 @@ def load_dataset(path, **arguments):
         '>50K': 'High',
     })
     return data
+
+def plot_confusion(data, **arguments):
+    data = data.astype(float).div(data.sum(axis=1), axis='index')
+    pp.imshow(data, cmap='Blues', **arguments)
+    pp.xticks(np.arange(len(data)), data.columns)
+    pp.yticks(np.arange(len(data)), data.columns)
+    middle = data.values.max() / 2.0
+    for i in range(len(data)):
+        for j in range(len(data)):
+            color = 'white' if data.iloc[i, j] > middle else 'black'
+            pp.text(j, i, '{:.2f}%'.format(100 * data.iloc[i, j]),
+                    horizontalalignment='center', color=color)
+    pp.ylabel('Observed')
+    pp.xlabel('Predicted')

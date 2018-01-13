@@ -9,6 +9,7 @@ start:
 
 setup: data
 	docker exec -it ${name} make -C /package
+	docker exec -it ${name} pip install seaborn
 
 shell:
 	docker exec -it ${name} /bin/bash
