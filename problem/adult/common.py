@@ -3,6 +3,8 @@ import matplotlib.pyplot as pp
 import numpy as np
 import pandas as pd
 
+from sklearn.metrics import precision_recall_curve, roc_curve
+
 
 def column_defaults():
     defaults = []
@@ -197,3 +199,22 @@ def print_confusion(data):
             true_negative / (true_negative + false_positive))
     _print('True positive rate (sensitivity, recall)',
             true_positive / (true_positive + false_negative))
+
+def plot_precision_recall(y_real, y_score, **arguments):
+    base = (y_real == 1).sum() / len(y_real)
+    y, x, _ = precision_recall_curve(y_real, y_score)
+    pp.step(x, y, where='post', **arguments)
+    pp.plot([0, 1], [base, base], linestyle='--', **arguments)
+    pp.xlabel('Recall')
+    pp.ylabel('Precision')
+    pp.ylim([0.0, 1.0])
+    pp.xlim([0.0, 1.0])
+
+def plot_roc(y_real, y_score, **arguments):
+    x, y, _ = roc_curve(y_real, y_score)
+    pp.step(x, y, where='post', **arguments)
+    pp.plot([0, 1], [0, 1], linestyle='--', **arguments)
+    pp.xlabel('False positive rate')
+    pp.ylabel('True positive rate')
+    pp.ylim([0.0, 1.0])
+    pp.xlim([0.0, 1.0])
