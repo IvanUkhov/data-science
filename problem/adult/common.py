@@ -193,7 +193,7 @@ def print_confusion(data):
     total = true_positive + false_negative + true_negative + false_positive
     _print('Accuracy', (true_positive + true_negative) / total)
     _print('Precision', true_positive / (true_positive + false_positive))
-    _print('True positive rate (sensitivity, recall)',
-            true_positive / (true_positive + false_negative))
     _print('True negative rate (specificity)',
             true_negative / (true_negative + false_positive))
+    _print('True positive rate (sensitivity, recall)',
+            true_positive / (true_positive + false_negative))
