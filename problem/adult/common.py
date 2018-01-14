@@ -3,6 +3,7 @@ import matplotlib.pyplot as pp
 import numpy as np
 import pandas as pd
 
+from sklearn.metrics import confusion_matrix
 from sklearn.metrics import precision_recall_curve, roc_curve
 
 
@@ -186,38 +187,34 @@ def load_dataset(path, **arguments):
     })
     return data
 
-def plot_confusion(data):
-    data = data.astype(float).div(data.sum(axis=1), axis='index')
-    pp.imshow(data, cmap='Blues')
-    pp.xticks(np.arange(len(data)), data.columns)
-    pp.yticks(np.arange(len(data)), data.columns)
-    middle = data.values.max() / 2.0
-    for i in range(len(data)):
-        for j in range(len(data)):
-            color = 'white' if data.iloc[i, j] > middle else 'black'
-            pp.text(j, i, '{:.2f}%'.format(100 * data.iloc[i, j]),
+def plot_confusion(y_true, y_predicted, y_score):
+    _, axes = pp.subplots(1, 3, figsize=(15, 4))
+    pp.sca(axes[0])
+    plot_confusion_matrix(y_true, y_predicted)
+    pp.sca(axes[1])
+    plot_precision_recall(y_true, y_score)
+    pp.sca(axes[2])
+    plot_roc(y_true, y_score)
+
+def plot_confusion_matrix(y_true, y_predicted):
+    matrix = confusion_matrix(y_true, y_predicted)
+    matrix = matrix / matrix.sum(axis=1)
+    count = matrix.shape[0]
+    pp.imshow(matrix, cmap='Blues')
+    pp.xticks(np.arange(count), ['Negative', 'Positive'])
+    pp.yticks(np.arange(count), ['Negative', 'Positive'])
+    middle = matrix.max() / 2.0
+    for i in range(count):
+        for j in range(count):
+            color = 'white' if matrix[i, j] > middle else 'black'
+            pp.text(j, i, '{:.2f}%'.format(100 * matrix[i, j]),
                     horizontalalignment='center', color=color)
-    pp.ylabel('Observed')
+    pp.ylabel('True')
     pp.xlabel('Predicted')
 
-def print_confusion(data):
-    def _print(name, value):
-        print('{}: {:.2f}%'.format(name, 100 * value))
-    true_positive = data.iloc[1, 1]
-    true_negative = data.iloc[0, 0]
-    false_positive = data.iloc[0, 1]
-    false_negative = data.iloc[1, 0]
-    total = true_positive + false_negative + true_negative + false_positive
-    _print('Accuracy', (true_positive + true_negative) / total)
-    _print('Precision', true_positive / (true_positive + false_positive))
-    _print('True negative rate (specificity)',
-            true_negative / (true_negative + false_positive))
-    _print('True positive rate (sensitivity, recall)',
-            true_positive / (true_positive + false_negative))
-
-def plot_precision_recall(y_real, y_score, t_star=0.5):
-    base = (y_real == 1).sum() / len(y_real)
-    y, x, t = precision_recall_curve(y_real, y_score)
+def plot_precision_recall(y_true, y_score, t_star=0.5):
+    base = (y_true == 1).sum() / len(y_true)
+    y, x, t = precision_recall_curve(y_true, y_score)
     i = np.argmin(np.abs(t - t_star))
     pp.step(x, y, where='post')
     pp.plot([0, 1], [base, base], linestyle='--')
@@ -227,8 +224,8 @@ def plot_precision_recall(y_real, y_score, t_star=0.5):
     pp.ylim([0.0, 1.0])
     pp.xlim([0.0, 1.0])
 
-def plot_roc(y_real, y_score, t_star=0.5):
-    x, y, t = roc_curve(y_real, y_score)
+def plot_roc(y_true, y_score, t_star=0.5):
+    x, y, t = roc_curve(y_true, y_score)
     i = np.argmin(np.abs(t - t_star))
     pp.step(x, y, where='post')
     pp.plot([0, 1], [0, 1], linestyle='--')
@@ -237,3 +234,19 @@ def plot_roc(y_real, y_score, t_star=0.5):
     pp.ylabel('True positive rate')
     pp.ylim([0.0, 1.0])
     pp.xlim([0.0, 1.0])
+
+def print_confusion(y_true, y_predicted, _):
+    def _print(name, value):
+        print('{}: {:.2f}%'.format(name, 100 * value))
+    matrix = confusion_matrix(y_true, y_predicted)
+    true_positive = matrix[1, 1]
+    true_negative = matrix[0, 0]
+    false_positive = matrix[0, 1]
+    false_negative = matrix[1, 0]
+    total = true_positive + false_negative + true_negative + false_positive
+    _print('Accuracy', (true_positive + true_negative) / total)
+    _print('Precision', true_positive / (true_positive + false_positive))
+    _print('True negative rate (specificity)',
+            true_negative / (true_negative + false_positive))
+    _print('True positive rate (sensitivity, recall)',
+            true_positive / (true_positive + false_negative))
