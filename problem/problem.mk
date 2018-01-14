@@ -6,6 +6,9 @@ all: start
 board:
 	docker exec -it $${name} tensorboard --logdir=/tmp/model
 
+clean:
+	docker exec -it $${name} rm -rf /tmp/model
+
 setup:
 	docker exec -it $${name} make -C /package
 
@@ -17,5 +20,5 @@ start:
 		-v "$${PWD}:/problem" -v "$${PWD}/../../package:/package" \
 		-p 6006:6006 -p 8888:8888 playground
 
-.PHONY: all board setup shell start
+.PHONY: all board clean setup shell start
 endef
