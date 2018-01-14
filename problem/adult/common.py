@@ -6,6 +6,21 @@ import pandas as pd
 from sklearn.metrics import precision_recall_curve, roc_curve
 
 
+def balance(data, column, negative, positive):
+    def _extract_that(data, column, value):
+        return data[data[column] == value]
+
+    def _choose_that(data, column, value, count):
+        index = data[data[column] == value].index
+        index = np.random.choice(index, count, replace=False)
+        return data.loc[index]
+
+    data_positive = _extract_that(data, column, positive)
+    data_negative = _choose_that(data, column, negative, len(data_positive))
+    data = pd.concat([data_positive, data_negative])
+    data = data.sample(frac=1).reset_index(drop=True)
+    return data
+
 def column_defaults():
     defaults = []
     categorical_names = column_variants().keys()
@@ -53,8 +68,8 @@ def column_variants():
             'Some-college',
         ],
         'Income': [
-            'High',
             'Low',
+            'High',
         ],
         'MaritalStatus': [
             'Divorced',
