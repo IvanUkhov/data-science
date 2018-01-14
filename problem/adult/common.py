@@ -171,9 +171,9 @@ def load_dataset(path, **arguments):
     })
     return data
 
-def plot_confusion(data, **arguments):
+def plot_confusion(data):
     data = data.astype(float).div(data.sum(axis=1), axis='index')
-    pp.imshow(data, cmap='Blues', **arguments)
+    pp.imshow(data, cmap='Blues')
     pp.xticks(np.arange(len(data)), data.columns)
     pp.yticks(np.arange(len(data)), data.columns)
     middle = data.values.max() / 2.0
@@ -200,20 +200,24 @@ def print_confusion(data):
     _print('True positive rate (sensitivity, recall)',
             true_positive / (true_positive + false_negative))
 
-def plot_precision_recall(y_real, y_score, **arguments):
+def plot_precision_recall(y_real, y_score, t_star=0.5):
     base = (y_real == 1).sum() / len(y_real)
-    y, x, _ = precision_recall_curve(y_real, y_score)
-    pp.step(x, y, where='post', **arguments)
-    pp.plot([0, 1], [base, base], linestyle='--', **arguments)
+    y, x, t = precision_recall_curve(y_real, y_score)
+    i = np.argmin(np.abs(t - t_star))
+    pp.step(x, y, where='post')
+    pp.plot([0, 1], [base, base], linestyle='--')
+    pp.plot(x[i], y[i], marker='o', markersize=10)
     pp.xlabel('Recall')
     pp.ylabel('Precision')
     pp.ylim([0.0, 1.0])
     pp.xlim([0.0, 1.0])
 
-def plot_roc(y_real, y_score, **arguments):
-    x, y, _ = roc_curve(y_real, y_score)
-    pp.step(x, y, where='post', **arguments)
-    pp.plot([0, 1], [0, 1], linestyle='--', **arguments)
+def plot_roc(y_real, y_score, t_star=0.5):
+    x, y, t = roc_curve(y_real, y_score)
+    i = np.argmin(np.abs(t - t_star))
+    pp.step(x, y, where='post')
+    pp.plot([0, 1], [0, 1], linestyle='--')
+    pp.plot(x[i], y[i], marker='o', markersize=10)
     pp.xlabel('False positive rate')
     pp.ylabel('True positive rate')
     pp.ylim([0.0, 1.0])
