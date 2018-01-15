@@ -7,7 +7,7 @@ from sklearn.metrics import confusion_matrix
 from sklearn.metrics import precision_recall_curve, roc_curve
 
 
-def balance_dataset(data, column, negative, positive):
+def balance_dataset(data, column, negative=False, positive=True):
     def _extract_that(data, column, value):
         return data[data[column] == value]
 
@@ -67,10 +67,6 @@ def column_variants():
             'Preschool',
             'Prof-school',
             'Some-college',
-        ],
-        'Income': [
-            'Low',
-            'High',
         ],
         'MaritalStatus': [
             'Divorced',
@@ -176,10 +172,10 @@ def load_dataset(path, **arguments):
                        engine='python', na_values='?', index_col=False,
                        **arguments)
     data['Income'] = data['Income'].map({
-        '<=50K.': 'Low',
-        '<=50K': 'Low',
-        '>50K.': 'High',
-        '>50K': 'High',
+        '<=50K.': False,
+        '<=50K': False,
+        '>50K.': True,
+        '>50K': True,
     })
     return data
 
@@ -188,9 +184,9 @@ def plot_confusion(y_true, y_predicted, y_score):
     pp.sca(axes[0])
     plot_confusion_matrix(y_true, y_predicted)
     pp.sca(axes[1])
-    plot_precision_recall(y_true, y_score)
-    pp.sca(axes[2])
     plot_roc(y_true, y_score)
+    pp.sca(axes[2])
+    plot_precision_recall(y_true, y_score)
 
 def plot_confusion_matrix(y_true, y_predicted):
     matrix = confusion_matrix(y_true, y_predicted)
