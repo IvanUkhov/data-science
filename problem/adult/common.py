@@ -7,20 +7,29 @@ from sklearn.metrics import confusion_matrix
 from sklearn.metrics import precision_recall_curve, roc_curve
 
 
-def balance_dataset(data, column, negative=False, positive=True):
-    def _extract_that(data, column, value):
-        return data[data[column] == value]
+def disable_warning(warning):
+    def _disable_warning(function):
+        def __disable_warning(*arguments, **karguments):
+            state = getattr(pd.options.mode, warning)
+            setattr(pd.options.mode, warning, None)
+            result = function(*arguments, **karguments)
+            setattr(pd.options.mode, warning, state)
+            return result
+        return __disable_warning
+    return _disable_warning
 
-    def _choose_that(data, column, value, count):
-        index = data[data[column] == value].index
-        index = np.random.choice(index, count, replace=False)
-        return data.loc[index]
-
-    data_positive = _extract_that(data, column, positive)
-    data_negative = _choose_that(data, column, negative, len(data_positive))
-    data = pd.concat([data_positive, data_negative])
-    data = data.sample(frac=1).reset_index(drop=True)
+@disable_warning('chained_assignment')
+def add_weight(data, column, weight):
+    data['Weight'] = data[column].map(weight)
     return data
+
+def adjust_balance(data, column, negative=False, positive=True):
+    data_positive = data[data[column] == positive]
+    data_negative = data.loc[np.random.choice(
+        data[data[column] == negative].index,
+        len(data_positive), replace=False)]
+    data = pd.concat([data_positive, data_negative])
+    return data.sample(frac=1).reset_index(drop=True)
 
 def column_defaults():
     defaults = []
