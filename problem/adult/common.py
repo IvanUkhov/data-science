@@ -7,7 +7,7 @@ from sklearn.metrics import confusion_matrix
 from sklearn.metrics import precision_recall_curve, roc_curve
 
 
-def balance(data, column, negative, positive):
+def balance_dataset(data, column, negative, positive):
     def _extract_that(data, column, value):
         return data[data[column] == value]
 
@@ -170,10 +170,6 @@ def column_variants():
             'Without-pay',
         ],
     }
-
-def drop_missing(data):
-    data.dropna(inplace=True)
-    data.index = pd.RangeIndex(len(data.index))
 
 def load_dataset(path, **arguments):
     data = pd.read_csv(path, names=column_names(), sep=r'\s*,\s*',
