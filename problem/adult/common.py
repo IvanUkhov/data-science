@@ -198,7 +198,7 @@ def plot_confusion(y_true, y_predicted, y_score):
 
 def plot_confusion_matrix(y_true, y_predicted):
     matrix = confusion_matrix(y_true, y_predicted)
-    matrix = matrix / matrix.sum(axis=1)
+    matrix = matrix / matrix.sum(axis=1)[:, None]
     count = matrix.shape[0]
     pp.imshow(matrix, cmap='Blues')
     pp.xticks(np.arange(count), ['Negative', 'Positive'])
