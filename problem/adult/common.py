@@ -5,7 +5,23 @@ import pandas as pd
 
 from sklearn.metrics import confusion_matrix
 from sklearn.metrics import precision_recall_curve, roc_curve
+from sklearn.model_selection import train_test_split as split
 
+
+class Dataset:
+    def __init__(self, data, balance=False, weight=False, test_size=0.3):
+        data_train, data_test = split(data, test_size=test_size, random_state=0)
+        if balance:
+            data_train = adjust_balance(data_train, 'Income')
+        if weight:
+            true = (data_train['Income'] == True).sum()
+            false = data_train.shape[0] - true
+            weight = {False: 1.0, True: false / true}
+            data_train = add_weight(data_train, 'Income', weight)
+        self.y_train = data_train.pop('Income')
+        self.x_train = data_train
+        self.y_test = data_test.pop('Income')
+        self.x_test = data_test
 
 def disable_warning(warning):
     def _disable_warning(function):
@@ -176,7 +192,7 @@ def column_variants():
         ],
     }
 
-def load_dataset(path, **arguments):
+def load_data(path, **arguments):
     data = pd.read_csv(path, names=column_names(), sep=r'\s*,\s*',
                        engine='python', na_values='?', index_col=False,
                        **arguments)
