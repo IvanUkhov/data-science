@@ -192,6 +192,21 @@ def column_variants():
         ],
     }
 
+def compute_confusion(y_true, y_predicted, y_score):
+    matrix = confusion_matrix(y_true, y_predicted)
+    true_positive = matrix[1, 1]
+    true_negative = matrix[0, 0]
+    false_positive = matrix[0, 1]
+    false_negative = matrix[1, 0]
+    total = true_positive + false_negative + true_negative + false_positive
+    return {
+        'Accuracy': (true_positive + true_negative) / total,
+        'Precision': true_positive / (true_positive + false_positive),
+        'Specificity': true_negative / (true_negative + false_positive),
+        'Sensitivity': true_positive / (true_positive + false_negative),
+        'ROC-AUC': roc_auc_score(y_true, y_score),
+    }
+
 def load_data(path, **arguments):
     data = pd.read_csv(path, names=column_names(), sep=r'\s*,\s*',
                        engine='python', na_values='?', index_col=False,
@@ -251,20 +266,3 @@ def plot_roc(y_true, y_score, t_star=0.5):
     pp.ylabel('True positive rate')
     pp.ylim([0.0, 1.0])
     pp.xlim([0.0, 1.0])
-
-def print_confusion(y_true, y_predicted, y_score):
-    def _print(name, value):
-        print('{}: {:.2f}%'.format(name, 100 * value))
-    matrix = confusion_matrix(y_true, y_predicted)
-    true_positive = matrix[1, 1]
-    true_negative = matrix[0, 0]
-    false_positive = matrix[0, 1]
-    false_negative = matrix[1, 0]
-    total = true_positive + false_negative + true_negative + false_positive
-    _print('Accuracy', (true_positive + true_negative) / total)
-    _print('Precision', true_positive / (true_positive + false_positive))
-    _print('True negative rate (specificity)',
-            true_negative / (true_negative + false_positive))
-    _print('True positive rate (sensitivity, recall)',
-            true_positive / (true_positive + false_negative))
-    _print('Area under curve (ROC)', roc_auc_score(y_true, y_score))
