@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 
 from sklearn.metrics import confusion_matrix
-from sklearn.metrics import precision_recall_curve, roc_curve
+from sklearn.metrics import precision_recall_curve, roc_auc_score, roc_curve
 from sklearn.model_selection import train_test_split as split
 
 
@@ -252,7 +252,7 @@ def plot_roc(y_true, y_score, t_star=0.5):
     pp.ylim([0.0, 1.0])
     pp.xlim([0.0, 1.0])
 
-def print_confusion(y_true, y_predicted, _):
+def print_confusion(y_true, y_predicted, y_score):
     def _print(name, value):
         print('{}: {:.2f}%'.format(name, 100 * value))
     matrix = confusion_matrix(y_true, y_predicted)
@@ -267,3 +267,4 @@ def print_confusion(y_true, y_predicted, _):
             true_negative / (true_negative + false_positive))
     _print('True positive rate (sensitivity, recall)',
             true_positive / (true_positive + false_negative))
+    _print('Area under curve (ROC)', roc_auc_score(y_true, y_score))
