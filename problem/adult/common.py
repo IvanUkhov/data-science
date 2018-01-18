@@ -18,6 +18,8 @@ class Dataset:
             false = data_train.shape[0] - true
             weight = {False: 1.0, True: false / true}
             data_train = add_weight(data_train, 'Income', weight)
+            weight = {False: 1.0, True: 1.0}
+            data_test = add_weight(data_test, 'Income', weight)
         self.y_train = data_train.pop('Income')
         self.x_train = data_train
         self.y_test = data_test.pop('Income')
