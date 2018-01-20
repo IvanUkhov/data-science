@@ -31,9 +31,9 @@ class Dataset:
         if weight:
             true = (data_train['Income'] == True).sum()
             false = data_train.shape[0] - true
-            data_train = Data.weight(
+            data_train = Dataset.weight(
                 data_train, 'Income', {False: 1.0, True: false / true})
-            data_test = Data.weight(
+            data_test = Dataset.weight(
                 data_test, 'Income', {False: 1.0, True: 1.0})
         self.y_train = data_train.pop('Income')
         self.x_train = data_train
