@@ -8,23 +8,6 @@ from sklearn.metrics import precision_recall_curve, roc_auc_score, roc_curve
 from sklearn.model_selection import train_test_split as split
 
 
-class Dataset:
-    def __init__(self, data, balance=False, weight=False, test_size=0.3):
-        data_train, data_test = split(data, test_size=test_size, random_state=0)
-        if balance:
-            data_train = adjust_balance(data_train, 'Income')
-        if weight:
-            true = (data_train['Income'] == True).sum()
-            false = data_train.shape[0] - true
-            weight = {False: 1.0, True: false / true}
-            data_train = add_weight(data_train, 'Income', weight)
-            weight = {False: 1.0, True: 1.0}
-            data_test = add_weight(data_test, 'Income', weight)
-        self.y_train = data_train.pop('Income')
-        self.x_train = data_train
-        self.y_test = data_test.pop('Income')
-        self.x_test = data_test
-
 def disable_warning(warning):
     def _disable_warning(function):
         def __disable_warning(*arguments, **karguments):
@@ -36,18 +19,47 @@ def disable_warning(warning):
         return __disable_warning
     return _disable_warning
 
-@disable_warning('chained_assignment')
-def add_weight(data, column, weight):
-    data['Weight'] = data[column].map(weight)
-    return data
+class Dataset:
+    def __init__(self, data,
+                 test_size=0.3,
+                 weight=False,
+                 oversample=False,
+                 undersample=False):
+        data_train, data_test = split(data, test_size=test_size, random_state=0)
+        if oversample: data_train = Dataset.oversample(data_train, 'Income')
+        if undersample: data_train = Dataset.undersample(data_train, 'Income')
+        if weight:
+            true = (data_train['Income'] == True).sum()
+            false = data_train.shape[0] - true
+            data_train = Data.weight(
+                data_train, 'Income', {False: 1.0, True: false / true})
+            data_test = Data.weight(
+                data_test, 'Income', {False: 1.0, True: 1.0})
+        self.y_train = data_train.pop('Income')
+        self.x_train = data_train
+        self.y_test = data_test.pop('Income')
+        self.x_test = data_test
 
-def adjust_balance(data, column, negative=False, positive=True):
-    data_positive = data[data[column] == positive]
-    data_negative = data.loc[np.random.choice(
-        data[data[column] == negative].index,
-        len(data_positive), replace=False)]
-    data = pd.concat([data_positive, data_negative])
-    return data.sample(frac=1).reset_index(drop=True)
+    def oversample(data, column, negative=False, positive=True):
+        data_negative = data[data[column] == negative]
+        data_positive = data.loc[np.random.choice(
+            data[data[column] == positive].index,
+            len(data_negative), replace=True)]
+        data = pd.concat([data_positive, data_negative])
+        return data.sample(frac=1).reset_index(drop=True)
+
+    def undersample(data, column, negative=False, positive=True):
+        data_positive = data[data[column] == positive]
+        data_negative = data.loc[np.random.choice(
+            data[data[column] == negative].index,
+            len(data_positive), replace=False)]
+        data = pd.concat([data_positive, data_negative])
+        return data.sample(frac=1).reset_index(drop=True)
+
+    @disable_warning('chained_assignment')
+    def weight(data, column, weight):
+        data['Weight'] = data[column].map(weight)
+        return data
 
 def column_defaults():
     defaults = []
