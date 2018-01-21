@@ -233,6 +233,15 @@ def load_data(path, **arguments):
     })
     return data
 
+def make_dummy(data, column, drop=None, keep=None):
+    dummies = pd.get_dummies(data[column])
+    if keep: drop = list(set(dummies.columns) - set(keep))
+    if drop: dummies.drop(drop, axis=1, inplace=True)
+    dummies.columns = [column.lower() for column in dummies.columns]
+    data = data.join(dummies)
+    data.drop([column], axis=1, inplace=True)
+    return data
+
 def plot_confusion(y_true, y_predicted, y_score):
     _, axes = pp.subplots(1, 3, figsize=(15, 4))
     pp.sca(axes[0])
