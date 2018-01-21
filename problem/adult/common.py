@@ -8,17 +8,6 @@ from sklearn.metrics import precision_recall_curve, roc_auc_score, roc_curve
 from sklearn.model_selection import train_test_split as split
 
 
-def disable_warning(warning):
-    def _disable_warning(function):
-        def __disable_warning(*arguments, **karguments):
-            state = getattr(pd.options.mode, warning)
-            setattr(pd.options.mode, warning, None)
-            result = function(*arguments, **karguments)
-            setattr(pd.options.mode, warning, state)
-            return result
-        return __disable_warning
-    return _disable_warning
-
 class Dataset:
     def __init__(self, data,
                  test_size=0.3,
@@ -56,7 +45,6 @@ class Dataset:
         data = pd.concat([data_positive, data_negative])
         return data.sample(frac=1).reset_index(drop=True)
 
-    @disable_warning('chained_assignment')
     def weight(data, column, weight):
         data['Weight'] = data[column].map(weight)
         return data
