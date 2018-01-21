@@ -209,6 +209,16 @@ def compute_confusion(y_true, y_predicted, y_score):
         'ROC-AUC': roc_auc_score(y_true, y_score),
     }
 
+def encode_categorical(data, column, drop=None, keep=None):
+    dummies = pd.get_dummies(data[column])
+    if keep: drop = list(set(dummies.columns) - set(keep))
+    if drop: dummies.drop(drop, axis=1, inplace=True)
+    dummies.columns = ['{}[{}]'.format(column, variant)
+                       for variant in dummies.columns]
+    data = data.join(dummies)
+    data.drop([column], axis=1, inplace=True)
+    return data
+
 def load_data(path, **arguments):
     data = pd.read_csv(path, names=column_names(), sep=r'\s*,\s*',
                        engine='python', na_values='?', index_col=False,
@@ -219,15 +229,6 @@ def load_data(path, **arguments):
         '>50K.': True,
         '>50K': True,
     })
-    return data
-
-def make_dummy(data, column, drop=None, keep=None):
-    dummies = pd.get_dummies(data[column])
-    if keep: drop = list(set(dummies.columns) - set(keep))
-    if drop: dummies.drop(drop, axis=1, inplace=True)
-    dummies.columns = [column.lower() for column in dummies.columns]
-    data = data.join(dummies)
-    data.drop([column], axis=1, inplace=True)
     return data
 
 def plot_confusion(y_true, y_predicted, y_score):
