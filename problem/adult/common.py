@@ -7,13 +7,16 @@ from sklearn.metrics import confusion_matrix
 from sklearn.metrics import precision_recall_curve, roc_auc_score, roc_curve
 from sklearn.model_selection import train_test_split as split
 
+DTYPE = 'uint8'
+NEGATIVE = 0
+POSITIVE = 1
 
 class Dataset:
     def __init__(self, data,
                  test_size=0.3,
                  weight=False,
-                 positive=True,
-                 nagative=False,
+                 negative=NEGATIVE,
+                 positive=POSITIVE,
                  oversample=False,
                  undersample=False):
         data_train, data_test = split(data, test_size=test_size, random_state=0)
@@ -32,7 +35,7 @@ class Dataset:
         self.y_test = data_test.pop('Income')
         self.x_test = data_test
 
-    def oversample(data, column, negative=False, positive=True):
+    def oversample(data, column, negative=NEGATIVE, positive=POSITIVE):
         data_negative = data[data[column] == negative]
         data_positive = data.loc[np.random.choice(
             data[data[column] == positive].index,
@@ -40,7 +43,7 @@ class Dataset:
         data = pd.concat([data_positive, data_negative])
         return data.sample(frac=1).reset_index(drop=True)
 
-    def undersample(data, column, negative=False, positive=True):
+    def undersample(data, column, negative=NEGATIVE, positive=POSITIVE):
         data_positive = data[data[column] == positive]
         data_negative = data.loc[np.random.choice(
             data[data[column] == negative].index,
@@ -222,16 +225,14 @@ def encode_categorical(data, column, drop=None, keep=None):
     data.drop([column], axis=1, inplace=True)
     return data
 
-def load_data(path, **arguments):
+def load_data(path, negative=NEGATIVE, positive=POSITIVE,
+              dtype=DTYPE, **arguments):
     data = pd.read_csv(path, names=column_names(), sep=r'\s*,\s*',
                        engine='python', na_values='?', index_col=False,
                        **arguments)
-    data['Income'] = data['Income'].map({
-        '<=50K.': False,
-        '<=50K': False,
-        '>50K.': True,
-        '>50K': True,
-    })
+    mapping = {'<=50K.': negative, '<=50K': negative,
+               '>50K.': positive, '>50K': positive}
+    data['Income'] = data['Income'].map(mapping).astype(dtype)
     return data
 
 def plot_confusion(y_true, y_predicted, y_score):
