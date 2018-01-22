@@ -12,18 +12,21 @@ class Dataset:
     def __init__(self, data,
                  test_size=0.3,
                  weight=False,
+                 positive=True,
+                 nagative=False,
                  oversample=False,
                  undersample=False):
         data_train, data_test = split(data, test_size=test_size, random_state=0)
         if oversample: data_train = Dataset.oversample(data_train, 'Income')
         if undersample: data_train = Dataset.undersample(data_train, 'Income')
         if weight:
-            true = (data_train['Income'] == True).sum()
-            false = data_train.shape[0] - true
-            data_train = Dataset.weight(
-                data_train, 'Income', {False: 1.0, True: false / true})
-            data_test = Dataset.weight(
-                data_test, 'Income', {False: 1.0, True: 1.0})
+            positive_size = (data_train['Income'] == positive).sum()
+            negative_size = data_train.shape[0] - positive_size
+            ratio = negative_size / positive_size
+            data_train = Dataset.weight(data_train, 'Income',
+                                        {negative: 1.0, positive: ratio})
+            data_test = Dataset.weight(data_test, 'Income',
+                                       {negative: 1.0, positive: 1.0})
         self.y_train = data_train.pop('Income')
         self.x_train = data_train
         self.y_test = data_test.pop('Income')
