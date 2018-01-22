@@ -213,7 +213,7 @@ def compute_confusion(y_true, y_predicted, y_score):
     }
 
 def encode_categorical(data, column, drop=None, keep=None):
-    dummies = pd.get_dummies(data[column])
+    dummies = pd.get_dummies(data[column], drop_first=True)
     if keep: drop = list(set(dummies.columns) - set(keep))
     if drop: dummies.drop(drop, axis=1, inplace=True)
     dummies.columns = ['{}[{}]'.format(column, variant)
