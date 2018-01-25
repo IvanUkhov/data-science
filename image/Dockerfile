@@ -1,8 +1,8 @@
 FROM tensorflow/tensorflow:latest-py3
 
-ENV IFACETS=https://github.com/IvanUkhov/ifacets.git
+ENV IFACETS=https://github.com/IvanUkhov/IFacets.git
 RUN apt-get update && apt-get install -y git
-RUN git clone --recursive ${IFACETS} /tmp/ifacets && make -C /tmp/ifacets
+RUN git clone --recursive ${IFACETS} /tmp/IFacets && make -C /tmp/IFacets
 
 COPY requirements.txt /tmp/requirements.txt
 RUN pip install -r /tmp/requirements.txt
