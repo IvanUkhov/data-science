@@ -1,8 +1,8 @@
-import collections
 import matplotlib.pyplot as pp
 import numpy as np
 import pandas as pd
 
+from collections import OrderedDict
 from sklearn.metrics import confusion_matrix
 from sklearn.metrics import precision_recall_curve, roc_auc_score, roc_curve
 from sklearn.model_selection import train_test_split as split
@@ -63,7 +63,7 @@ def column_defaults():
     categorical_names = column_variants().keys()
     for name in column_names():
         defaults.append((name, ['' if name in categorical_names else 0]))
-    return collections.OrderedDict(defaults)
+    return OrderedDict(defaults)
 
 
 def column_names():
@@ -206,20 +206,19 @@ def column_variants():
     }
 
 
-def compute_confusion(y_true, y_predicted, y_score):
+def compute_confusion(y_true, y_predicted, y_score, beta=1):
     matrix = confusion_matrix(y_true, y_predicted)
-    true_positive = matrix[1, 1]
-    true_negative = matrix[0, 0]
-    false_positive = matrix[0, 1]
-    false_negative = matrix[1, 0]
-    total = true_positive + false_negative + true_negative + false_positive
-    return {
-        'Accuracy': (true_positive + true_negative) / total,
-        'Precision': true_positive / (true_positive + false_positive),
-        'Specificity': true_negative / (true_negative + false_positive),
-        'Sensitivity': true_positive / (true_positive + false_negative),
-        'ROC-AUC': roc_auc_score(y_true, y_score),
-    }
+    tn, tp = matrix[0, 0], matrix[1, 1]
+    fn, fp = matrix[1, 0], matrix[0, 1]
+    return OrderedDict([
+        ('Accuracy', (tp + tn) / (tp + fn + tn + fp)),
+        ('Precision', tp / (tp + fp)),
+        ('Sensitivity', tp / (tp + fn)),
+        ('Specificity', tn / (tn + fp)),
+        ('F{} score'.format(beta), ((1 + beta**2) * tp) /
+                                   ((1 + beta**2) * tp + beta**2 * fn + fp)),
+        ('ROC-AUC', roc_auc_score(y_true, y_score)),
+    ])
 
 
 def encode_categorical(data, column, drop=None, keep=None):
