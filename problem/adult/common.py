@@ -7,9 +7,11 @@ from sklearn.metrics import confusion_matrix
 from sklearn.metrics import precision_recall_curve, roc_auc_score, roc_curve
 from sklearn.model_selection import train_test_split as split
 
+
 DTYPE = 'uint8'
 NEGATIVE = 0
 POSITIVE = 1
+
 
 class Dataset:
     def __init__(self, data,
@@ -55,12 +57,14 @@ class Dataset:
         data['Weight'] = data[column].map(weight)
         return data
 
+
 def column_defaults():
     defaults = []
     categorical_names = column_variants().keys()
     for name in column_names():
         defaults.append((name, ['' if name in categorical_names else 0]))
     return collections.OrderedDict(defaults)
+
 
 def column_names():
     return [
@@ -80,6 +84,7 @@ def column_names():
         'NativeCountry',
         'Income',
     ]
+
 
 def column_variants():
     return {
@@ -200,6 +205,7 @@ def column_variants():
         ],
     }
 
+
 def compute_confusion(y_true, y_predicted, y_score):
     matrix = confusion_matrix(y_true, y_predicted)
     true_positive = matrix[1, 1]
@@ -215,6 +221,7 @@ def compute_confusion(y_true, y_predicted, y_score):
         'ROC-AUC': roc_auc_score(y_true, y_score),
     }
 
+
 def encode_categorical(data, column, drop=None, keep=None):
     dummies = pd.get_dummies(data[column], drop_first=True)
     if keep: drop = list(set(dummies.columns) - set(keep))
@@ -224,6 +231,7 @@ def encode_categorical(data, column, drop=None, keep=None):
     data = data.join(dummies)
     data.drop([column], axis=1, inplace=True)
     return data
+
 
 def load_data(path, negative=NEGATIVE, positive=POSITIVE,
               dtype=DTYPE, **arguments):
@@ -235,6 +243,7 @@ def load_data(path, negative=NEGATIVE, positive=POSITIVE,
     data['Income'] = data['Income'].map(mapping).astype(dtype)
     return data
 
+
 def plot_confusion(y_true, y_predicted, y_score):
     _, axes = pp.subplots(1, 3, figsize=(15, 4))
     pp.sca(axes[0])
@@ -243,6 +252,7 @@ def plot_confusion(y_true, y_predicted, y_score):
     plot_roc(y_true, y_score)
     pp.sca(axes[2])
     plot_precision_recall(y_true, y_score)
+
 
 def plot_confusion_matrix(y_true, y_predicted):
     matrix = confusion_matrix(y_true, y_predicted)
@@ -260,6 +270,7 @@ def plot_confusion_matrix(y_true, y_predicted):
     pp.ylabel('True')
     pp.xlabel('Predicted')
 
+
 def plot_precision_recall(y_true, y_score, t_star=0.5):
     base = (y_true == 1).sum() / len(y_true)
     y, x, t = precision_recall_curve(y_true, y_score)
@@ -271,6 +282,7 @@ def plot_precision_recall(y_true, y_score, t_star=0.5):
     pp.ylabel('Precision')
     pp.ylim([0.0, 1.0])
     pp.xlim([0.0, 1.0])
+
 
 def plot_roc(y_true, y_score, t_star=0.5):
     x, y, t = roc_curve(y_true, y_score)
