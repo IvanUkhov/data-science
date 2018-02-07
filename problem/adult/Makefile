@@ -3,8 +3,6 @@ $(eval $(call problem,adult))
 
 source := https://archive.ics.uci.edu/ml/machine-learning-databases/${name}
 
-setup: data
-
 data:
 	mkdir -p data
 	curl -L ${source}/${name}.data -o data/train.csv

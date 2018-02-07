@@ -9,16 +9,12 @@ board:
 clean:
 	docker exec -it $${name} rm -rf /tmp/model
 
-setup:
-	docker exec -it $${name} make -C /package
-
 shell:
 	docker exec -it $${name} /bin/bash
 
 start:
 	docker run -it --rm --name $${name} -w /problem \
-		-v "$${PWD}:/problem" -v "$${PWD}/../../package:/package" \
-		-p 6006:6006 -p 8888:8888 playground
+		-v "$${PWD}:/problem" -p 6006:6006 -p 8888:8888 playground
 
-.PHONY: all board clean setup shell start
+.PHONY: all board clean shell start
 endef
