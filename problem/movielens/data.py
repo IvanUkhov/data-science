@@ -1,7 +1,6 @@
 import numpy as np
 import pandas as pd
 
-from scipy import sparse
 from sklearn.model_selection import train_test_split
 
 
@@ -29,7 +28,7 @@ class Movie(Data):
         self.data = data
 
     def find(self, ids):
-        return self.data.loc[ids]
+        return self.data.reindex(ids)
 
 
 class Rating(Data):
@@ -41,13 +40,18 @@ class Rating(Data):
     def clean(data):
         data.sort_values(by='timestamp', inplace=True)
         data.drop('timestamp', axis=1, inplace=True)
-        data = data.groupby(['userId', 'movieId'])['rating'].agg(['last'])
+        data = data.groupby(['movieId', 'userId'])['rating'].agg(['last'])
         data.rename({'last': 'rating'}, axis=1, inplace=True)
         data.reset_index(inplace=True)
         return data
 
     def __init__(self, data):
         self.data = data
+
+    def find(self, id):
+        data = self.data[self.data['userId'] == id][['movieId', 'rating']]
+        data.set_index('movieId', inplace=True)
+        return data
 
     def split(self, first=8, second=2, random_state=42):
         test_size = second / (first + second)
@@ -56,15 +60,3 @@ class Rating(Data):
                                          test_size=test_size,
                                          random_state=random_state)
         return Rating(first), Rating(second)
-
-
-class RatingMatrix:
-    def __init__(self, data, shape=None):
-        self.data = sparse.csr_matrix(
-            (data['rating'], (data['movieId'], data['userId'])), shape=shape)
-
-    def mean(self):
-        sum = np.sum(self.data, axis=1)
-        nonzero = np.sum(self.data > 0, axis=1)
-        nonzero[nonzero == 0] = 1
-        return sum / nonzero

@@ -32,7 +32,7 @@ class Encoder(Transformer):
         self.column = column
         self.encoder = LabelEncoder()
 
-    def fit(self, x):
+    def fit(self, x, y=None):
         self.encoder.fit(x[self.column])
         return self
 
