@@ -1,6 +1,8 @@
 import numpy as np
 import pandas as pd
 
+from sklearn.model_selection import train_test_split
+
 
 class Data:
     def describe(self):
@@ -32,8 +34,14 @@ class Movie(Data):
 class Rating(Data):
     def load(path='data/ratings.csv', **arguments):
         data = pd.read_csv(path, **arguments)
-        data['timestamp'] = pd.to_datetime(data['timestamp'], unit='s')
+        data.drop('timestamp', axis=1, inplace=True)
         return Rating(data)
 
     def __init__(self, data):
         self.data = data
+
+    def split(self, first=8, second=2, random_state=42):
+        test_size = second / (first + second)
+        first, second = train_test_split(test_size=test_size, shuffle=True,
+                                         random_state=random_state)
+        return Rating(first), Rating(second)
