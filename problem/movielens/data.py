@@ -34,7 +34,11 @@ class Movie(Data):
 class Rating(Data):
     def load(path='data/ratings.csv', **arguments):
         data = pd.read_csv(path, **arguments)
+        data.sort_values(by='timestamp', inplace=True)
         data.drop('timestamp', axis=1, inplace=True)
+        data = data.groupby(['userId', 'movieId'])['rating'].agg(['last'])
+        data.rename({'last': 'rating'}, axis=1, inplace=True)
+        data.reset_index(inplace=True)
         return Rating(data)
 
     def __init__(self, data):
@@ -42,6 +46,8 @@ class Rating(Data):
 
     def split(self, first=8, second=2, random_state=42):
         test_size = second / (first + second)
-        first, second = train_test_split(test_size=test_size, shuffle=True,
+        first, second = train_test_split(self.data,
+                                         shuffle=True,
+                                         test_size=test_size,
                                          random_state=random_state)
         return Rating(first), Rating(second)
