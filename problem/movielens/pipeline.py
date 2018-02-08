@@ -23,8 +23,7 @@ class Builder:
 
 
 class Transformer(BaseEstimator, TransformerMixin):
-    def fit(self, x, y=None):
-        return self
+    pass
 
 
 class Encoder(Transformer):

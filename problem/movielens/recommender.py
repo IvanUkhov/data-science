@@ -6,27 +6,32 @@ from sklearn.metrics.pairwise import cosine_similarity
 
 class NearestNeighbor:
     def __init__(self, rating_data, similarity_data,
-                 encoder=None, decoder=None):
+                 proxy_encoder=None, target_encoder=None):
         self.rating_data = rating_data
         self.similarity_data = similarity_data
-        self.encoder = encoder
-        self.decoder = decoder
+        self.proxy_encoder = proxy_encoder
+        self.target_encoder = target_encoder
 
-    def recommend(self, id, count=10):
-        if self.encoder: id = self.encoder.transform([id])[0]
-        index = self.similarity_data[id, :].nonzero()[1]
-        weights = self.similarity_data[id, index]
-        ratings = self.rating_data[index, :]
-        scores = weights.dot(ratings).todense()
-        ids = np.argsort(-scores, axis=1)[0, :count].tolist()[0]
-        if self.decoder: ids = self.decoder.inverse_transform(ids)
+    def recommend(self, id, proxy_count=10, target_count=10):
+        if self.proxy_encoder:
+            id = self.proxy_encoder.transform([id])[0]
+        similarities = self.similarity_data[id, :]
+        ids = np.argsort(-similarities.todense(), axis=1)[0, :proxy_count]
+        ids = ids.tolist()[0]
+        ids.remove(id)
+        scores = self.similarity_data[id, ids].dot(self.rating_data[ids, :])
+        ids = np.argsort(-scores.todense(), axis=1)[0, :target_count]
+        ids = ids.tolist()[0]
+        if self.target_encoder:
+            ids = self.target_encoder.inverse_transform(ids)
         return ids
 
 
 class Rating:
-    def __init__(self, rating_data, major, minor, shape):
-        data = (rating_data['rating'], (rating_data[major], rating_data[minor]))
-        self.data = sparse.csr_matrix(data, shape=shape)
+    def __init__(self, rating_data, proxy, target, shape):
+        self.data = sparse.csr_matrix(
+            (rating_data['rating'], (rating_data[proxy], rating_data[target])),
+            shape=shape)
 
 
 class Similarity:
