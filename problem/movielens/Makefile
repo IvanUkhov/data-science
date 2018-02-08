@@ -1,7 +1,7 @@
 include ../problem.mk
 $(eval $(call problem,movielens))
 
-source := http://files.grouplens.org/datasets/movielens/ml-latest-small.zip
+source := http://files.grouplens.org/datasets/movielens/ml-latest.zip
 
 data:
 	mkdir -p data
