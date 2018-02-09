@@ -16,14 +16,13 @@ class NearestNeighbor:
         if self.proxy_encoder:
             origin = self.proxy_encoder.transform([origin])[0]
         similarities = self.similarity_data[origin, :].todense()
-        proxies = np.argsort(-similarities, axis=1)[0, :proxy_count]
-        proxies = proxies.tolist()[0]
-        proxies.remove(origin)
+        proxies = _choose(np.argsort(-similarities, axis=1), proxy_count,
+                          lambda proxy: origin != proxy)
         similarities = self.similarity_data[origin, proxies]
         ratings = self.rating_data[proxies, :]
         scores = similarities.dot(ratings).todense()
-        targets = np.argsort(-scores, axis=1)[0, :target_count]
-        targets = targets.tolist()[0]
+        targets = _choose(np.argsort(-scores, axis=1), target_count,
+                          lambda target: not self.rating_data[origin, target])
         if self.target_encoder:
             targets = self.target_encoder.inverse_transform(targets)
         return targets
@@ -40,3 +39,13 @@ class Similarity:
     def __init__(self, rating_data, metric='cosine'):
         if metric == 'cosine':
             self.data = cosine_similarity(rating_data, dense_output=False)
+
+
+def _choose(items, count, condition):
+    chosen = []
+    for item in np.nditer(items):
+        if condition(item):
+            chosen.append(item)
+            if len(chosen) == count:
+                break
+    return chosen
