@@ -17,17 +17,28 @@ class NearestNeighbor:
                              shape=(n_proxies, n_targets))
         self.similarity = Similarity(self.rating)
 
-    def recommend(self, origin, proxy_count=10, target_count=10):
-        origin = self.proxy_encoder.transform([origin])[0]
-        similarities = self.similarity.data[origin, :].todense()
-        proxies = _choose(np.argsort(-similarities, axis=1), proxy_count,
-                          lambda proxy: origin != proxy)
-        similarities = self.similarity.data[origin, proxies]
+    def recommend_proxies(self, proxy, count=10):
+        proxy = self.proxy_encoder.transform([proxy])[0]
+        proxies = self._recommend_proxies(proxy, count)
+        return self.proxy_encoder.inverse_transform(proxies)
+
+    def recommend_targets(self, proxy, count=10, proxy_count=10):
+        proxy = self.proxy_encoder.transform([proxy])[0]
+        targets = self._recommend_targets(proxy, count, proxy_count)
+        return self.target_encoder.inverse_transform(targets)
+
+    def _recommend_proxies(self, proxy, count):
+        similarities = self.similarity.data[proxy, :].todense()
+        return _choose(np.argsort(-similarities, axis=1), count,
+                       lambda another_proxy: proxy != another_proxy)
+
+    def _recommend_targets(self, proxy, count, proxy_count):
+        proxies = self._recommend_proxies(proxy, proxy_count)
+        similarities = self.similarity.data[proxy, proxies]
         ratings = self.rating.data[proxies, :]
         scores = similarities.dot(ratings).todense()
-        targets = _choose(np.argsort(-scores, axis=1), target_count,
-                          lambda target: not self.rating.data[origin, target])
-        return self.target_encoder.inverse_transform(targets)
+        return _choose(np.argsort(-scores, axis=1), count,
+                       lambda target: not self.rating.data[proxy, target])
 
 
 class Rating:
