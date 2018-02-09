@@ -19,26 +19,29 @@ class NearestNeighbor:
 
     def recommend_proxies(self, proxy, count=10):
         proxy = self.proxy_encoder.transform([proxy])[0]
-        proxies = self._recommend_proxies(proxy, count)
-        return self.proxy_encoder.inverse_transform(proxies)
+        proxies, similarities = self._recommend_proxies(proxy, count)
+        return self.proxy_encoder.inverse_transform(proxies), similarities
 
     def recommend_targets(self, proxy, count=10, proxy_count=10):
         proxy = self.proxy_encoder.transform([proxy])[0]
-        targets = self._recommend_targets(proxy, count, proxy_count)
-        return self.target_encoder.inverse_transform(targets)
+        targets, ratings = self._recommend_targets(proxy, count, proxy_count)
+        return self.target_encoder.inverse_transform(targets), ratings
 
     def _recommend_proxies(self, proxy, count):
         similarities = self.similarity.data[proxy, :].todense()
-        return _choose(np.argsort(-similarities, axis=1), count,
-                       lambda another_proxy: proxy != another_proxy)
+        proxies = _choose(np.argsort(-similarities, axis=1), count,
+                          lambda another_proxy: proxy != another_proxy)
+        return proxies, similarities[0, proxies].tolist()[0]
 
     def _recommend_targets(self, proxy, count, proxy_count):
-        proxies = self._recommend_proxies(proxy, proxy_count)
+        proxies, _ = self._recommend_proxies(proxy, proxy_count)
         similarities = self.similarity.data[proxy, proxies]
         ratings = self.rating.data[proxies, :]
-        scores = similarities.dot(ratings).todense()
-        return _choose(np.argsort(-scores, axis=1), count,
-                       lambda target: not self.rating.data[proxy, target])
+        ratings = np.divide(similarities.dot(ratings),
+                            np.abs(similarities).dot(ratings > 0))
+        targets = _choose(np.argsort(-ratings, axis=1), count,
+                          lambda target: not self.rating.data[proxy, target])
+        return targets, ratings[0, targets].tolist()[0]
 
 
 class Rating:

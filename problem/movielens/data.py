@@ -46,7 +46,12 @@ class Rating(Data):
     def __init__(self, data):
         self.data = data
 
-    def find(self, user):
+    def find_by_movie(self, movie):
+        data = self.data[self.data['movieId'] == movie][['userId', 'rating']]
+        data.set_index('userId', inplace=True)
+        return data
+
+    def find_by_user(self, user):
         data = self.data[self.data['userId'] == user][['movieId', 'rating']]
         data.set_index('movieId', inplace=True)
         return data
