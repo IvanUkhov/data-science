@@ -21,7 +21,7 @@ class NearestNeighbor:
         source = self.source_encoder.transform([source])[0]
         ratings = self._predict_ratings(source, neighbor_count)
         targets = _choose(np.argsort(-ratings, axis=1), count,
-                          lambda target: not self.rating.data[source, target])
+                          lambda target: not self.rating[source, target])
         return self.target_encoder.inverse_transform(targets), \
                ratings[0, targets].tolist()[0]
 
@@ -32,15 +32,15 @@ class NearestNeighbor:
                similarities.tolist()[0]
 
     def _find_neighbors(self, source, count):
-        similarities = self.similarity.data[source, :].todense()
+        similarities = self.similarity[source, :].todense()
         neighbors = _choose(np.argsort(-similarities, axis=1), count,
                             lambda neighbor: source != neighbor)
         return neighbors, similarities[0, neighbors]
 
     def _predict_ratings(self, source, neighbor_count):
         neighbors, _ = self._find_neighbors(source, neighbor_count)
-        similarities = self.similarity.data[source, neighbors]
-        ratings = self.rating.data[neighbors, :]
+        similarities = self.similarity[source, neighbors]
+        ratings = self.rating[neighbors, :]
         return np.divide(similarities.dot(ratings),
                          np.abs(similarities).dot(ratings > 0))
 
@@ -50,11 +50,17 @@ class Rating:
         self.data = sparse.csr_matrix(
             (ratings, (sources, targets)), shape=shape)
 
+    def __getitem__(self, key):
+        return self.data.__getitem__(key)
+
 
 class Similarity:
     def __init__(self, rating, metric='cosine'):
         if metric == 'cosine':
             self.data = cosine_similarity(rating.data, dense_output=False)
+
+    def __getitem__(self, key):
+        return self.data.__getitem__(key)
 
 
 def _choose(collection, count, condition):
