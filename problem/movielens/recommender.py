@@ -6,48 +6,49 @@ from sklearn.preprocessing import LabelEncoder
 
 
 class NearestNeighbor:
-    def __init__(self, proxies, targets, ratings):
-        self.proxy_encoder = LabelEncoder()
+    def __init__(self, sources, targets, ratings):
+        self.source_encoder = LabelEncoder()
         self.target_encoder = LabelEncoder()
-        encoded_proxies = self.proxy_encoder.fit_transform(proxies)
+        encoded_sources = self.source_encoder.fit_transform(sources)
         encoded_targets = self.target_encoder.fit_transform(targets)
-        n_proxies = len(self.proxy_encoder.classes_)
+        n_sources = len(self.source_encoder.classes_)
         n_targets = len(self.target_encoder.classes_)
-        self.rating = Rating(encoded_proxies, encoded_targets, ratings,
-                             shape=(n_proxies, n_targets))
+        self.rating = Rating(encoded_sources, encoded_targets, ratings,
+                             shape=(n_sources, n_targets))
         self.similarity = Similarity(self.rating)
 
-    def recommend_proxies(self, proxy, count=10):
-        proxy = self.proxy_encoder.transform([proxy])[0]
-        proxies, similarities = self._recommend_proxies(proxy, count)
-        return self.proxy_encoder.inverse_transform(proxies), similarities
-
-    def recommend_targets(self, proxy, count=10, proxy_count=10):
-        proxy = self.proxy_encoder.transform([proxy])[0]
-        targets, ratings = self._recommend_targets(proxy, count, proxy_count)
-        return self.target_encoder.inverse_transform(targets), ratings
-
-    def _recommend_proxies(self, proxy, count):
-        similarities = self.similarity.data[proxy, :].todense()
-        proxies = _choose(np.argsort(-similarities, axis=1), count,
-                          lambda another_proxy: proxy != another_proxy)
-        return proxies, similarities[0, proxies].tolist()[0]
-
-    def _recommend_targets(self, proxy, count, proxy_count):
-        proxies, _ = self._recommend_proxies(proxy, proxy_count)
-        similarities = self.similarity.data[proxy, proxies]
-        ratings = self.rating.data[proxies, :]
-        ratings = np.divide(similarities.dot(ratings),
-                            np.abs(similarities).dot(ratings > 0))
+    def recommend(self, source, count=10, neighbor_count=10):
+        source = self.source_encoder.transform([source])[0]
+        ratings = self._predict_ratings(source, neighbor_count)
         targets = _choose(np.argsort(-ratings, axis=1), count,
-                          lambda target: not self.rating.data[proxy, target])
-        return targets, ratings[0, targets].tolist()[0]
+                          lambda target: not self.rating.data[source, target])
+        return self.target_encoder.inverse_transform(targets), \
+               ratings[0, targets].tolist()[0]
+
+    def recommend_neighbors(self, source, count=10):
+        source = self.source_encoder.transform([source])[0]
+        neighbors, similarities = self._find_neighbors(source, count)
+        return self.source_encoder.inverse_transform(neighbors), \
+               similarities.tolist()[0]
+
+    def _find_neighbors(self, source, count):
+        similarities = self.similarity.data[source, :].todense()
+        neighbors = _choose(np.argsort(-similarities, axis=1), count,
+                            lambda neighbor: source != neighbor)
+        return neighbors, similarities[0, neighbors]
+
+    def _predict_ratings(self, source, neighbor_count):
+        neighbors, _ = self._find_neighbors(source, neighbor_count)
+        similarities = self.similarity.data[source, neighbors]
+        ratings = self.rating.data[neighbors, :]
+        return np.divide(similarities.dot(ratings),
+                         np.abs(similarities).dot(ratings > 0))
 
 
 class Rating:
-    def __init__(self, proxies, targets, ratings, shape):
-        self.data = sparse.csr_matrix((ratings, (proxies, targets)),
-                                      shape=shape)
+    def __init__(self, sources, targets, ratings, shape):
+        self.data = sparse.csr_matrix(
+            (ratings, (sources, targets)), shape=shape)
 
 
 class Similarity:

@@ -1,6 +1,8 @@
 import numpy as np
 import pandas as pd
 
+from sklearn.model_selection import train_test_split
+
 
 class Data:
     def describe(self):
@@ -55,3 +57,11 @@ class Rating(Data):
         data = self.data[self.data['userId'] == user][['movieId', 'rating']]
         data.set_index('movieId', inplace=True)
         return data
+
+    def split(self, major=8, minor=2, random_state=42):
+        test_size = minor / (major + minor)
+        major, minor = train_test_split(self.data,
+                                        shuffle=True,
+                                        test_size=test_size,
+                                        random_state=random_state)
+        return Rating(major), Rating(minor)
