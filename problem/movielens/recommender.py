@@ -12,26 +12,28 @@ class NearestNeighbor:
         self.proxy_encoder = proxy_encoder
         self.target_encoder = target_encoder
 
-    def recommend(self, id, proxy_count=10, target_count=10):
+    def recommend(self, origin, proxy_count=10, target_count=10):
         if self.proxy_encoder:
-            id = self.proxy_encoder.transform([id])[0]
-        similarities = self.similarity_data[id, :]
-        ids = np.argsort(-similarities.todense(), axis=1)[0, :proxy_count]
-        ids = ids.tolist()[0]
-        ids.remove(id)
-        scores = self.similarity_data[id, ids].dot(self.rating_data[ids, :])
-        ids = np.argsort(-scores.todense(), axis=1)[0, :target_count]
-        ids = ids.tolist()[0]
+            origin = self.proxy_encoder.transform([origin])[0]
+        similarities = self.similarity_data[origin, :].todense()
+        proxies = np.argsort(-similarities, axis=1)[0, :proxy_count]
+        proxies = proxies.tolist()[0]
+        proxies.remove(origin)
+        similarities = self.similarity_data[origin, proxies]
+        ratings = self.rating_data[proxies, :]
+        scores = similarities.dot(ratings).todense()
+        targets = np.argsort(-scores, axis=1)[0, :target_count]
+        targets = targets.tolist()[0]
         if self.target_encoder:
-            ids = self.target_encoder.inverse_transform(ids)
-        return ids
+            targets = self.target_encoder.inverse_transform(targets)
+        return targets
 
 
 class Rating:
-    def __init__(self, rating_data, proxy, target, shape):
-        self.data = sparse.csr_matrix(
-            (rating_data['rating'], (rating_data[proxy], rating_data[target])),
-            shape=shape)
+    def __init__(self, rating_data, proxy_column, target_column, shape):
+        indices = (rating_data[proxy_column], rating_data[target_column])
+        self.data = sparse.csr_matrix((rating_data['rating'], indices),
+                                      shape=shape)
 
 
 class Similarity:

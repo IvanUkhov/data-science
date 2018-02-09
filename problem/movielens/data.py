@@ -25,8 +25,8 @@ class Movie(Data):
         data.set_index('movieId', inplace=True)
         self.data = data
 
-    def find(self, ids):
-        return self.data.reindex(ids)
+    def find(self, movies):
+        return self.data.reindex(movies)
 
 
 class Rating(Data):
@@ -46,7 +46,7 @@ class Rating(Data):
     def __init__(self, data):
         self.data = data
 
-    def find(self, id):
-        data = self.data[self.data['userId'] == id][['movieId', 'rating']]
+    def find(self, user):
+        data = self.data[self.data['userId'] == user][['movieId', 'rating']]
         data.set_index('movieId', inplace=True)
         return data
