@@ -4,7 +4,7 @@ import pandas as pd
 from sklearn.model_selection import train_test_split
 
 
-class Data:
+class Database:
     def describe(self):
         def unique(series):
             return series.nunique()
@@ -19,7 +19,7 @@ class Data:
         return self.data.describe().append(aggregates)
 
 
-class Movie(Data):
+class Movie(Database):
     def load(path='data/movies.csv', **arguments):
         return Movie(pd.read_csv(path, **arguments))
 
@@ -31,7 +31,7 @@ class Movie(Data):
         return self.data.reindex(movies)
 
 
-class Rating(Data):
+class Rating(Database):
     def load(path='data/ratings.csv', clean=True, **arguments):
         data = pd.read_csv(path, **arguments)
         if clean: data = Rating.clean(data)
