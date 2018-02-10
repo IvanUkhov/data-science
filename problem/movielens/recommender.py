@@ -44,6 +44,13 @@ class Baseline:
                 l_source + source_counts)
         return mean, source_biases, target_biases
 
+    def predict(self, source, target):
+        source = self.source_encoder.transform([source])[0]
+        target = self.target_encoder.transform([target])[0]
+        return self.mean + \
+               self.source_biases[source] + \
+               self.target_biases[target]
+
 
 class NearestNeighbor(Baseline):
     def __init__(self, **options):
