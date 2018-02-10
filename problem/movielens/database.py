@@ -40,7 +40,7 @@ class Rating(Database):
     def clean(data):
         data.sort_values(by='timestamp', inplace=True)
         data.drop('timestamp', axis=1, inplace=True)
-        data = data.groupby(['movieId', 'userId'])['rating'].agg(['last'])
+        data = data.groupby(['userId', 'movieId'])['rating'].agg(['last'])
         data.rename({'last': 'rating'}, axis=1, inplace=True)
         data.reset_index(inplace=True)
         return data
