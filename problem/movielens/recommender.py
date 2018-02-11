@@ -58,53 +58,52 @@ class NearestNeighbor(Baseline):
 
     def fit(self, data):
         super(NearestNeighbor, self).fit(data)
-        self.similarity = Similarity(self.rating)
+        self.similarity = Similarity(self.rating.data)
         return self
 
-    def recommend(self, source, n_target=10, n_neighbors=10):
+    def recommend(self, source, n_target=10, n_neighbor=10):
         source = self.source_encoder.transform([source])[0]
-        ratings = self._predict_ratings(source, n_neighbors)
+        ratings = self._predict_ratings(source, n_neighbor)
         targets = _choose(n_target, np.argsort(-ratings, axis=1),
                           lambda target: not self.rating[source, target])
         return self.target_encoder.inverse_transform(targets), \
                ratings[0, targets].tolist()[0]
 
-    def recommend_neighbors(self, source, n_neighbors=10):
+    def recommend_neighbors(self, source, n_neighbor=10):
         source = self.source_encoder.transform([source])[0]
-        neighbors, similarities = self._find_neighbors(source, n_neighbors)
+        neighbors, similarities = self._find_neighbors(source, n_neighbor)
         return self.source_encoder.inverse_transform(neighbors), \
                similarities.tolist()[0]
 
-    def _find_neighbors(self, source, n_neighbors):
+    def _find_neighbors(self, source, n_neighbor):
         similarities = self.similarity[source, :].todense()
-        neighbors = _choose(n_neighbors, np.argsort(-similarities, axis=1),
+        neighbors = _choose(n_neighbor, np.argsort(-similarities, axis=1),
                             lambda neighbor: source != neighbor)
         return neighbors, similarities[0, neighbors]
 
-    def _predict_ratings(self, source, n_neighbors):
-        neighbors, _ = self._find_neighbors(source, n_neighbors)
+    def _predict_ratings(self, source, n_neighbor):
+        neighbors, _ = self._find_neighbors(source, n_neighbor)
         similarities = self.similarity[source, neighbors]
         ratings = self.rating[neighbors, :]
         return np.divide(similarities.dot(ratings),
                          np.abs(similarities).dot(ratings > 0))
 
 
-class Rating:
+class Matrix:
+    def __getitem__(self, key):
+        return self.data.__getitem__(key)
+
+
+class Rating(Matrix):
     def __init__(self, data, shape):
         data = (data[2], (data[0], data[1]))
         self.data = sparse.csr_matrix(data, shape=shape)
 
-    def __getitem__(self, key):
-        return self.data.__getitem__(key)
 
-
-class Similarity:
-    def __init__(self, rating, metric='cosine'):
+class Similarity(Matrix):
+    def __init__(self, data, metric='cosine'):
         if metric == 'cosine':
-            self.data = cosine_similarity(rating.data, dense_output=False)
-
-    def __getitem__(self, key):
-        return self.data.__getitem__(key)
+            self.data = cosine_similarity(data, dense_output=False)
 
 
 def _choose(n, collection, condition):
