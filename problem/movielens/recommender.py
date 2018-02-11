@@ -14,7 +14,7 @@ class Baseline:
     def fit(self, data):
         n_epoch = self.options.get('n_epoch', 10)
         l_source = self.options.get('l_source', 15)
-        l_target = self.options.get('l_target', 15)
+        l_target = self.options.get('l_target', 10)
         encoded_sources = self.source_encoder.fit_transform(data[0])
         encoded_targets = self.target_encoder.fit_transform(data[1])
         data = (encoded_sources, encoded_targets, data[2])
