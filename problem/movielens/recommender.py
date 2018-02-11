@@ -21,27 +21,29 @@ class Baseline:
         self.n_source = len(self.source_encoder.classes_)
         self.n_target = len(self.target_encoder.classes_)
         self.rating = Rating(data, shape=(self.n_source, self.n_target))
-        self.mean, self.source_biases, self.target_biases = \
+        self.global_bias, self.source_biases, self.target_biases = \
             Baseline._compute(self.rating.data, n_epoch, l_source, l_target)
         return self
 
     def predict(self, source, target):
-        source, target = self._encode(source, target)
-        return self.mean + \
-               self.source_biases[source] + \
-               self.target_biases[target]
+        return self._predict(*self._encode(source, target))
 
     def _encode(self, source=None, target=None):
         if source: source = self.source_encoder.transform([source])[0]
         if target: target = self.target_encoder.transform([target])[0]
         return source, target
 
+    def _predict(self, source, target):
+        return self.global_bias + \
+               self.source_biases[source] + \
+               self.target_biases[target]
+
     @staticmethod
     def _compute(data, n_epoch, l_source, l_target):
         n_source, n_target = data.shape
         index = data.nonzero()
-        mean = data[index].mean()
-        centered = np.squeeze(np.asarray(data[index])) - mean
+        global_bias = data[index].mean()
+        centered = np.squeeze(np.asarray(data[index])) - global_bias
         source_biases = np.zeros(n_source)
         target_biases = np.zeros(n_target)
         source_counts = np.bincount(index[0])
@@ -53,7 +55,7 @@ class Baseline:
             source_biases[:] = np.divide(
                 np.bincount(index[0], centered - target_biases[index[1]]),
                 l_source + source_counts)
-        return mean, source_biases, target_biases
+        return global_bias, source_biases, target_biases
 
 
 class NearestNeighbor(Baseline):
@@ -65,28 +67,20 @@ class NearestNeighbor(Baseline):
         self.similarity = Similarity(self.rating.data, **self.options)
         return self
 
-    def connect(self, source, n_neighbor=10):
-        source, _ = self._encode(source=source)
-        similarities = self.similarity[source, :].todense()
-        neighbors = _choose(
-            n_neighbor, np.argsort(-similarities, axis=1),
-            lambda neighbor: source != neighbor)
-        similarities = np.squeeze(np.asarray(similarities[0, neighbors]))
-        neighbors = self.source_encoder.inverse_transform(neighbors)
-        return neighbors, similarities
-
-    def predict(self, source, target, n_neighbor=10, n_neighbor_min=1):
+    def predict(self, source, target, n_neighbor=40, n_neighbor_min=1):
         source, target = self._encode(source=source, target=target)
-        similarities = self.similarity[source, :].todense()
+        baseline = super(NearestNeighbor, self)._predict(source, target)
+        similarities = self.similarity[source, :].toarray()
         neighbors = _choose(
             n_neighbor, np.argsort(-similarities, axis=1),
             lambda neighbor: source != neighbor and
                              self.rating[neighbor, target])
-        if len(neighbors) < n_neighbor_min:
-            return super(NearestNeighbor, self).predict(source, target)
-        ratings = self.rating[neighbors, target]
-        similarities = self.similarity[source, neighbors]
-        return similarities.dot(ratings)[0, 0] / np.sum(np.abs(similarities))
+        if len(neighbors) < n_neighbor_min: return baseline
+        ratings = self.rating[neighbors, target].toarray()
+        similarities = self.similarity[source, neighbors].toarray()
+        numerator = np.asscalar(similarities.dot(ratings - baseline))
+        denominator = np.sum(np.abs(similarities))
+        return baseline + numerator / denominator
 
 
 class Matrix:
