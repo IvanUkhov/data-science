@@ -74,13 +74,13 @@ class NearestNeighbor(Baseline):
         neighbors = _choose(
             n_neighbor, np.argsort(-similarities, axis=1),
             lambda neighbor: source != neighbor and
-                             self.rating[neighbor, target])
+                             self.rating[neighbor, target] and
+                             similarities[0, neighbor] > 0)
         if len(neighbors) < n_neighbor_min: return baseline
+        similarities = similarities[0, neighbors]
+        similarities /= np.sum(similarities)
         ratings = self.rating[neighbors, target].toarray()
-        similarities = self.similarity[source, neighbors].toarray()
-        numerator = np.asscalar(similarities.dot(ratings - baseline))
-        denominator = np.sum(np.abs(similarities))
-        return baseline + numerator / denominator
+        return baseline + np.asscalar(similarities.dot(ratings - baseline))
 
 
 class Matrix:
