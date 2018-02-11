@@ -58,7 +58,7 @@ class NearestNeighbor(Baseline):
 
     def fit(self, data):
         super(NearestNeighbor, self).fit(data)
-        self.similarity = Similarity(self.rating.data)
+        self.similarity = Similarity(self.rating.data, **self.options)
         return self
 
     def recommend(self, source, n_target=10, n_neighbor=10):
@@ -101,7 +101,8 @@ class Rating(Matrix):
 
 
 class Similarity(Matrix):
-    def __init__(self, data, metric='cosine'):
+    def __init__(self, data, **options):
+        metric = options.get('metric', 'cosine')
         if metric == 'cosine':
             self.data = cosine_similarity(data, dense_output=False)
 
