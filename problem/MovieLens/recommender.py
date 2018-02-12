@@ -29,14 +29,19 @@ class Baseline:
         return self._predict(*self._encode(source, target))
 
     def _encode(self, source=None, target=None):
-        if source: source = self.source_encoder.transform([source])[0]
-        if target: target = self.target_encoder.transform([target])[0]
+        if not source is None:
+            try: source = self.source_encoder.transform([source])[0]
+            except ValueError: source = None
+        if not target is None:
+            try: target = self.target_encoder.transform([target])[0]
+            except: target = None
         return source, target
 
     def _predict(self, source, target):
-        return self.global_bias + \
-               self.source_biases[source] + \
-               self.target_biases[target]
+        rating = self.global_bias
+        if not source is None: rating += self.source_biases[source]
+        if not target is None: rating += self.target_biases[target]
+        return rating
 
     @staticmethod
     def _compute(data, n_epoch, l_source, l_target):
@@ -70,6 +75,7 @@ class NearestNeighbor(Baseline):
     def predict(self, source, target, n_neighbor=40, n_neighbor_min=1):
         source, target = self._encode(source=source, target=target)
         baseline = super(NearestNeighbor, self)._predict(source, target)
+        if source is None or target is None: return baseline
         similarities = self.similarity[source, :].toarray()
         neighbors = _choose(
             n_neighbor, np.argsort(-similarities, axis=1),
