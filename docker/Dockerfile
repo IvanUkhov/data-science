@@ -1,6 +1,6 @@
 FROM tensorflow/tensorflow:latest-py3
 
-ENV IFACETS=https://github.com/science-of-data/IFacets.git
+ENV IFACETS=https://github.com/chain-rule/IFacets.git
 RUN apt-get update && apt-get install -y git
 RUN git clone --recursive ${IFACETS} /tmp/IFacets && make -C /tmp/IFacets
 
