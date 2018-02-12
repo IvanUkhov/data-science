@@ -1,6 +1,7 @@
 import numpy as np
 
 from scipy import sparse
+from sklearn.metrics.pairwise import cosine_similarity
 from sklearn.preprocessing import LabelEncoder
 
 
@@ -101,12 +102,18 @@ class Rating(Matrix):
 
 class Similarity(Matrix):
     def __init__(self, data, **options):
-        metric = options.get('metric', 'cosine')
+        metric = options.get('metric', 'cosine_constrained')
         if metric == 'cosine':
             self.data = Similarity._compute_cosine(data)
+        if metric == 'cosine_constrained':
+            self.data = Similarity._compute_cosine_constrained(data)
 
     @staticmethod
     def _compute_cosine(data):
+        return cosine_similarity(data, dense_output=False)
+
+    @staticmethod
+    def _compute_cosine_constrained(data):
         value = data.dot(data.T)
         value.eliminate_zeros()
         scale = data.power(2).dot(data.T > 0)
