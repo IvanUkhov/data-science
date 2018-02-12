@@ -1,7 +1,6 @@
 import numpy as np
 
 from scipy import sparse
-from sklearn.metrics.pairwise import cosine_similarity
 from sklearn.preprocessing import LabelEncoder
 
 
@@ -104,7 +103,16 @@ class Similarity(Matrix):
     def __init__(self, data, **options):
         metric = options.get('metric', 'cosine')
         if metric == 'cosine':
-            self.data = cosine_similarity(data, dense_output=False)
+            self.data = Similarity._compute_cosine(data)
+
+    @staticmethod
+    def _compute_cosine(data):
+        value = data.dot(data.T)
+        value.eliminate_zeros()
+        scale = data.power(2).dot(data.T > 0)
+        scale.eliminate_zeros()
+        scale.data = np.reciprocal(np.sqrt(scale.data))
+        return value.multiply(scale).multiply(scale.T)
 
 
 def _choose(n, collection, condition):
