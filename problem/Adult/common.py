@@ -58,9 +58,9 @@ class Dataset:
         return data
 
 
-def column_defaults():
+def column_defaults(categorical_names=[]):
     defaults = []
-    categorical_names = column_variants().keys()
+    categorical_names += column_variants().keys()
     for name in column_names():
         defaults.append((name, ['' if name in categorical_names else 0]))
     return OrderedDict(defaults)
