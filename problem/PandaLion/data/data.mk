@@ -23,7 +23,7 @@ list.txt:
 .cleaned: .downloaded
 	cd images; \
 	shopt -s nocaseglob; \
-	for name in *.{jpg,jpeg}; do \
+	for name in {*.jpg,*.jpeg}; do \
 		if [[ ! $$$$(file -b "$$$${name}") =~ JPEG ]]; then \
 			rm "$$$${name}"; \
 		fi; \
@@ -32,12 +32,11 @@ list.txt:
 
 .renamed: .cleaned
 	cd images; \
-	number=1; \
 	shopt -s nocaseglob; \
-	for old in *.{jpg,jpeg}; do \
-		new=$$$$(printf "%04d.jpg" "$$$${number}"); \
+	for old in {*.jpg,*.jpeg}; do \
+		new="$$$$(echo -n "$$$${old}" | shasum | cut -c1-20).jpg"; \
+		echo "$$$${old} -> $$$${new}"; \
 		mv "$$$${old}" "$$$${new}"; \
-		let number=number+1; \
 	done
 	touch $$@
 
