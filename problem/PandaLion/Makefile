@@ -9,10 +9,10 @@ source:
 
 train: source
 	docker exec -it ${name} \
-		/bin/bash -c 'cd source; DATA_ROOT=../data name=lion2panda gpu=0 cudnn=0 th train.lua'
+		/bin/bash -c 'cd source; DATA_ROOT=../data name=${name} gpu=0 cudnn=0 th train.lua'
 
 test: source
 	docker exec -it ${name} \
-		/bin/bash -c 'cd source; DATA_ROOT=../data name=lion2panda gpu=0 cudnn=0 phase=test th test.lua'
+		/bin/bash -c 'cd source; DATA_ROOT=../data name=${name} gpu=0 cudnn=0 phase=test th test.lua'
 
 .PHONY: data test train
