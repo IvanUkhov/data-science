@@ -2,4 +2,9 @@
 .cleaned
 .downloaded
 .renamed
+.split
 images
+testA
+testB
+trainA
+trainB
