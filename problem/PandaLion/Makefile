@@ -1,5 +1,5 @@
 include ../problem.mk
-$(eval $(call problem,pandalion))
+$(eval $(call problem,pandalion,torch))
 
 data:
 	$(MAKE) -C data
