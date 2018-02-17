@@ -1,4 +1,4 @@
-name := playground
+name := playground-tensorflow
 
 image:
 	docker rmi ${name} || true

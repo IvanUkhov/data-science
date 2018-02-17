@@ -1,5 +1,6 @@
 define problem
 name := $(1)
+image := $(or $(2),$(2),tensorflow)
 
 all: start
 
@@ -14,7 +15,7 @@ shell:
 
 start:
 	docker run -it --rm --name $${name} -w /problem \
-		-v "$${PWD}:/problem" -p 6006:6006 -p 8888:8888 playground
+		-v "$${PWD}:/problem" -p 6006:6006 -p 8888:8888 playground-$${image}
 
 .PHONY: all board clean shell start
 endef
