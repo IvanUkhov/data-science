@@ -5,7 +5,11 @@ image := $(or $(2),$(2),tensorflow)
 all: start
 
 board:
-	docker exec -it $${name} tensorboard --logdir=/tmp/model
+	if [[ $${image} == tensorflow ]]; then \
+		docker exec -it $${name} tensorboard --logdir=/tmp/model; \
+	else \
+		docker exec -it $${name} th -ldisplay.start 6006 0.0.0.0; \
+	fi
 
 clean:
 	docker exec -it $${name} rm -rf /tmp/model
