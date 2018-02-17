@@ -4,7 +4,7 @@ wnid := $(2)
 
 imagenet_url := http://www.image-net.org/api/text/imagenet.synset.geturls?wnid=$${wnid}
 
-all: .renamed
+all: .split
 
 list.txt:
 	curl -L $${imagenet_url} -o $$@
@@ -27,7 +27,7 @@ list.txt:
 		if [[ ! $$$$(file -b "$$$${name}") =~ JPEG ]]; then \
 			rm "$$$${name}"; \
 		fi; \
-	done
+	done;
 	touch $$@
 
 .renamed: .cleaned
@@ -35,13 +35,27 @@ list.txt:
 	shopt -s nocaseglob; \
 	for old in {*.jpg,*.jpeg}; do \
 		new="$$$$(echo -n "$$$${old}" | shasum | cut -c1-20).jpg"; \
-		echo "$$$${old} -> $$$${new}"; \
 		mv "$$$${old}" "$$$${new}"; \
-	done
+	done;
+	touch $$@
+
+.split: .renamed
+	mkdir -p images/train;
+	mkdir -p images/test;
+	list=($$$$(find images -name *.jpg)); \
+	count=$$$${#list[@]}; \
+	train=$$$$(($$$${count} * 80 / 100)); \
+	test=$$$$(($$$${count} - $$$${train})); \
+	for name in $$$${list[@]:0:$$$${train}}; do \
+		mv "$$$${name}" images/train; \
+	done; \
+	for name in $$$${list[@]:$$$${train}:$$$${test}}; do \
+		mv "$$$${name}" images/test; \
+	done;
 	touch $$@
 
 clean:
-	rm -rf .downloaded .renamed images
+	rm -rf .cleaned .downloaded .renamed .split images
 
 .PHONY: all clean
 endef
