@@ -27,7 +27,7 @@ list.txt:
 		if [[ ! $$$$(file -b "$$$${name}") =~ JPEG ]]; then \
 			rm "$$$${name}"; \
 		fi; \
-	done;
+	done
 	touch $$@
 
 .renamed: .cleaned
@@ -36,7 +36,7 @@ list.txt:
 	for old in {*.jpg,*.jpeg}; do \
 		new="$$$$(echo -n "$$$${old}" | shasum | cut -c1-20).jpg"; \
 		mv "$$$${old}" "$$$${new}"; \
-	done;
+	done
 	touch $$@
 
 .split: .renamed
@@ -51,7 +51,7 @@ list.txt:
 	done; \
 	for name in $$$${list[@]:$$$${train}:$$$${test}}; do \
 		mv "$$$${name}" images/test; \
-	done;
+	done
 	touch $$@
 
 clean:
