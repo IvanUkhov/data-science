@@ -3,4 +3,5 @@
 .done*
 checkpoints
 images
+pretrained
 source

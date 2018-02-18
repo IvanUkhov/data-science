@@ -14,4 +14,12 @@ train: data
 		--X data/lion_train.tfrecords \
 		--Y data/panda_train.tfrecords
 
-.PHONY: data
+export:
+	docker exec -it ${name} \
+		python source/export_graph.py \
+		--checkpoint_dir $$(find checkpoints -type d ! -path checkpoints | head -1) \
+		--XtoY_model lion2panda.pb \
+		--YtoX_model panda2lion.pb \
+		--image_size 256
+
+.PHONY: data export train
