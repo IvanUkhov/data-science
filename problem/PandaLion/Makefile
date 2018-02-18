@@ -1,18 +1,16 @@
 include ../problem.mk
-$(eval $(call problem,pandalion,torch))
+$(eval $(call problem,pandalion))
 
-data:
+data: source
 	$(MAKE) -C data
 
 source:
-	git clone https://github.com/junyanz/CycleGAN source
+	git clone https://github.com/vanhuyz/CycleGAN-TensorFlow source
 
-train: source
+train: data
 	docker exec -it ${name} \
-		/bin/bash -c 'cd source; DATA_ROOT=../data name=${name} gpu=0 cudnn=0 th train.lua'
+		python source/train.py  \
+		--X data/lion_train.tfrecords \
+		--Y data/panda_train.tfrecords
 
-test: source
-	docker exec -it ${name} \
-		/bin/bash -c 'cd source; DATA_ROOT=../data name=${name} gpu=0 cudnn=0 phase=test th test.lua'
-
-.PHONY: data test train
+.PHONY: data

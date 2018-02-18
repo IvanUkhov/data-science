@@ -1,15 +1,11 @@
 define problem
-name := $(1)
-image := $(or $(2),$(2),tensorflow)
+export name := $(1)
+image := $(or $(2),$(2),playground-tensorflow)
 
 all: start
 
 board:
-	if [[ $${image} == tensorflow ]]; then \
-		docker exec -it $${name} tensorboard --logdir=/tmp/model; \
-	else \
-		docker exec -it $${name} th -ldisplay.start 6006 0.0.0.0; \
-	fi
+	docker exec -it $${name} tensorboard --logdir=/tmp/model
 
 clean:
 	docker exec -it $${name} rm -rf /tmp/model
@@ -19,7 +15,7 @@ shell:
 
 start:
 	docker run -it --rm --name $${name} -w /problem \
-		-v "$${PWD}:/problem" -p 6006:6006 -p 8888:8888 playground-$${image}
+		-v "$${PWD}:/problem" -p 6006:6006 -p 8888:8888 $${image}
 
 .PHONY: all board clean shell start
 endef

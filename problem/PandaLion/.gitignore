@@ -1,8 +1,5 @@
+*.tfrecords
 *.txt
 .done*
 images
 source
-testA
-testB
-trainA
-trainB
