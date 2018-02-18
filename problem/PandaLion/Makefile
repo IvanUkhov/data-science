@@ -4,37 +4,44 @@ $(eval $(call problem,pandalion))
 export x := lion
 export y := panda
 
+model_dir := checkpoints
+trained_model_dir := pretrained
+
 data: source
 	$(MAKE) -C data
 
 source:
 	git clone https://github.com/vanhuyz/CycleGAN-TensorFlow source
 
-train: data
-	docker exec -it ${name} ln -fs /problem/checkpoints /tmp/model
-	docker exec -it ${name} \
-		python source/train.py  \
-		--X data/${x}_train.tfrecords \
-		--Y data/${y}_train.tfrecords
+train: data ${model_dir}
+	model=$$(find ${model_dir} -type d ! -path ${model_dir} | head -1); \
+	flags+=" --X data/${x}_train.tfrecords"; \
+	flags+=" --Y data/${y}_train.tfrecords"; \
+	[ ! -z "$${model}" ] && flags+=" --load_model $${model}"; \
+	docker exec -it ${name} python source/train.py $${flags}
 
-export: pretrained/${x}2{y}.pb
+export: ${trained_model_dir}/${x}2${y}.pb
 
-infer: pretrained/${x}2${y}.pb
+infer: ${trained_model_dir}/${x}2${y}.pb
 	input=$${INPUT:=data/lion/images/test/0b1fd4cb410910b79602.jpg}; \
 	output=$${OUTPUT:=${x}2${y}.jpg}; \
-	docker exec -it ${name} \
-		python source/inference.py \
-		--model $< \
-		--input "$${input}" \
-		--output "$${output}" \
-		--image_size 256
+	flags+=" --model $<"; \
+	flags+=" --image_size 256"; \
+	flags+=" --input $${input}"; \
+	flags+=" --output $${output}"; \
+	docker exec -it ${name} python source/inference.py $${flags}
 	
-pretrained/${x}2${y}.pb:
-	docker exec -it ${name} \
-		python source/export_graph.py \
-		--checkpoint_dir $$(find checkpoints -type d ! -path checkpoints | head -1) \
-		--XtoY_model ${x}2${y}.pb \
-		--YtoX_model ${y}2${x}.pb \
-		--image_size 256
+${trained_model_dir}/${x}2${y}.pb:
+	model=$$(find ${model_dir} -type d ! -path ${model_dir} | head -1); \
+	flags+=" --checkpoint_dir $${model}"; \
+	flags+=" --image_size 256"; \
+	flags+=" --XtoY_model ${x}2${y}.pb"; \
+	flags+=" --YtoX_model ${y}2${x}.pb"; \
+	docker exec -it ${name} python source/export_graph.py $${flags}
+
+${model_dir}:
+	mkdir -p ${model_dir}
+	docker exec -it ${name} rm -f /tmp/model
+	docker exec -it ${name} ln -s /problem/${model_dir} /tmp/model
 
 .PHONY: data export infer train
