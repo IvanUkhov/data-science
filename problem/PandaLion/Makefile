@@ -23,7 +23,7 @@ train: data ${model_dir}
 export: ${trained_model_dir}/${x}2${y}.pb
 
 infer: ${trained_model_dir}/${x}2${y}.pb
-	input=$${INPUT:=data/lion/images/test/0b1fd4cb410910b79602.jpg}; \
+	input=$${INPUT:=data/lion/images/test/0cd9b1229efff99513cd.jpg}; \
 	output=$${OUTPUT:=${x}2${y}.jpg}; \
 	flags+=" --model $<"; \
 	flags+=" --image_size 256"; \
