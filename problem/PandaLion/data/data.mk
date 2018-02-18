@@ -2,14 +2,17 @@ define data
 name := $(1)
 wnid := $(2)
 
-imagenet_url := http://www.image-net.org/api/text/imagenet.synset.geturls?wnid=$${wnid}
+list_url := http://www.image-net.org/api/text/imagenet.synset.geturls?wnid=$${wnid}
 
-all: .split
+all: .done
+
+clean:
+	rm -rf images .done*
 
 list.txt:
-	curl -L $${imagenet_url} -o $$@
+	curl -L $${list_url} -o $$@
 
-.downloaded: list.txt
+.done_download: list.txt
 	mkdir -p images
 	-cd images && \
 		cat ../$$< | \
@@ -20,7 +23,7 @@ list.txt:
 		curl --connect-timeout 10 --fail --silent -LO
 	touch $$@
 
-.cleaned: .downloaded
+.done_clean: .done_download
 	cd images; \
 	shopt -s nocaseglob; \
 	for name in {*.jpg,*.jpeg}; do \
@@ -30,7 +33,7 @@ list.txt:
 	done
 	touch $$@
 
-.renamed: .cleaned
+.done_rename: .done_clean
 	cd images; \
 	shopt -s nocaseglob; \
 	for old in {*.jpg,*.jpeg}; do \
@@ -39,7 +42,7 @@ list.txt:
 	done
 	touch $$@
 
-.split: .renamed
+.done_split: .done_rename
 	mkdir -p images/train;
 	mkdir -p images/test;
 	list=($$$$(find images -name *.jpg)); \
@@ -54,8 +57,8 @@ list.txt:
 	done
 	touch $$@
 
-clean:
-	rm -rf .cleaned .downloaded .renamed .split images
+.done: .done_split
+	touch $$@
 
 .PHONY: all clean
 endef

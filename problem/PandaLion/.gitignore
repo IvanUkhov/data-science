@@ -1,8 +1,5 @@
 *.txt
-.cleaned
-.downloaded
-.renamed
-.split
+.done*
 images
 source
 testA
