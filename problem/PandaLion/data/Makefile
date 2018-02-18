@@ -1,19 +1,16 @@
-a := lion
-b := panda
-
 all: train test
 
-train: ${a}_train.tfrecords ${b}_train.tfrecords
+train: ${x}_train.tfrecords ${y}_train.tfrecords
 
-test: ${a}_test.tfrecords ${b}_test.tfrecords
+test: ${x}_test.tfrecords ${y}_test.tfrecords
 
-${a}_%.tfrecords ${b}_%.tfrecords: ${a}/.done ${b}/.done
+${x}_%.tfrecords ${y}_%.tfrecords: ${x}/.done ${y}/.done
 	docker exec -it ${name} \
 		python source/build_data.py \
-		--X_input_dir data/${a}/images/$* \
-		--Y_input_dir data/${b}/images/$* \
-		--X_output_file data/${a}_$*.tfrecords \
-		--Y_output_file data/${b}_$*.tfrecords
+		--X_input_dir data/${x}/images/$* \
+		--Y_input_dir data/${y}/images/$* \
+		--X_output_file data/${x}_$*.tfrecords \
+		--Y_output_file data/${y}_$*.tfrecords
 
 %/.done:
 	$(MAKE) -C $*
