@@ -22,4 +22,12 @@ export:
 		--YtoX_model panda2lion.pb \
 		--image_size 256
 
-.PHONY: data export train
+infer:
+	docker exec -it ${name} \
+		python source/inference.py \
+		--model pretrained/lion2panda.pb \
+		--input $${INPUT:=data/lion/images/test/0b1fd4cb410910b79602.jpg} \
+		--output $${OUTPUT:=PandaLion.jpg} \
+		--image_size 256
+
+.PHONY: data export infer train
