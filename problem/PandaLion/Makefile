@@ -30,6 +30,12 @@ infer: ${trained_model_dir}/${x}2${y}.pb
 	flags+=" --input $${input}"; \
 	flags+=" --output $${output}"; \
 	docker exec -it ${name} python source/inference.py $${flags}
+
+board: board-setup
+
+board-setup: ${model_dir}
+	docker exec -it ${name} rm -f /tmp/model
+	docker exec -it ${name} ln -s /problem/${model_dir} /tmp/model
 	
 ${trained_model_dir}/${x}2${y}.pb:
 	model=$$(find ${model_dir} -type d ! -path ${model_dir} | head -1); \
@@ -41,7 +47,5 @@ ${trained_model_dir}/${x}2${y}.pb:
 
 ${model_dir}:
 	mkdir -p ${model_dir}
-	docker exec -it ${name} rm -f /tmp/model
-	docker exec -it ${name} ln -s /problem/${model_dir} /tmp/model
 
-.PHONY: data export infer train
+.PHONY: board-setup data export infer train
