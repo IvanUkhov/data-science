@@ -8,6 +8,7 @@ source:
 	git clone https://github.com/vanhuyz/CycleGAN-TensorFlow source
 
 train: data
+	docker exec -it ${name} ln -fs /problem/checkpoints /tmp/model
 	docker exec -it ${name} \
 		python source/train.py  \
 		--X data/lion_train.tfrecords \
