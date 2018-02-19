@@ -1,8 +1,8 @@
 include ../../problem.mk
 $(eval $(call problem,pandalion))
 
-export x := lion
-export y := panda
+export x ?= lion
+export y ?= panda
 
 model_path := checkpoints
 trained_model_path := pretrained
