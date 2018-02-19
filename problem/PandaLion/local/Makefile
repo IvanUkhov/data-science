@@ -1,4 +1,4 @@
-include ../problem.mk
+include ../../problem.mk
 $(eval $(call problem,pandalion))
 
 export x := lion
