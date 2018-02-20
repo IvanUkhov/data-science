@@ -1,6 +1,6 @@
 define problem
 export name := $(1)
-image := $(or $(2),$(2),playground-tensorflow)
+image := playground-$(or $(2),$(2),tensorflow)
 
 all: start
 
