@@ -2,7 +2,7 @@ rm(list = ls())
 
 library(ggplot2)
 
-loadBLI <- function(path) {
+load.BLI <- function(path) {
   data <- read.csv(path)
   data <- subset(data, INEQUALITY == 'TOT')
   data <- subset(data, Indicator == 'Life satisfaction')
@@ -12,7 +12,7 @@ loadBLI <- function(path) {
   return(data)
 }
 
-loadIMF <- function(path, scale = 1000) {
+load.IMF <- function(path, scale = 1000) {
   data <- read.table(path, header = TRUE, sep = '\t', encoding = 'latin1',
                      na.strings = 'n/a', quote = '', blank.lines.skip = TRUE)
   data <- data[, c('Country', 'X2015')]
@@ -24,9 +24,8 @@ loadIMF <- function(path, scale = 1000) {
   return(data)
 }
 
-load <- function(bli_path, imf_path) {
-  data <- merge(loadBLI(bli_path),
-                loadIMF(imf_path),
+load <- function(path.BLI, path.IMF) {
+  data <- merge(load.BLI(path.BLI), load.IMF(path.IMF),
                 by = 'Country', all = FALSE)
   data$Country = droplevels(data$Country)
   return(data)
