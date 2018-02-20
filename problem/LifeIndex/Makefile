@@ -1,4 +1,4 @@
 data:
-	$(MAKE) -C data
+	$(MAKE) -C $@
 
 .PHONY: data

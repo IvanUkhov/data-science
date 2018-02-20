@@ -1,8 +1,8 @@
-all: train test
+files := \
+	${x}_train.tfrecords ${x}_test.tfrecords \
+	${y}_train.tfrecords ${y}_test.tfrecords
 
-train: ${x}_train.tfrecords ${y}_train.tfrecords
-
-test: ${x}_test.tfrecords ${y}_test.tfrecords
+all: ${files}
 
 ${x}_%.tfrecords ${y}_%.tfrecords: ${x}/.done ${y}/.done
 	docker exec -it ${name} \
@@ -15,4 +15,4 @@ ${x}_%.tfrecords ${y}_%.tfrecords: ${x}/.done ${y}/.done
 %/.done:
 	$(MAKE) -C $*
 
-.PHONY: all test train
+.PHONY: all

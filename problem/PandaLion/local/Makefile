@@ -8,7 +8,7 @@ model_path := checkpoints
 trained_model_path := pretrained
 
 data: source
-	$(MAKE) -C data
+	$(MAKE) -C $@
 
 source:
 	git clone https://github.com/vanhuyz/CycleGAN-TensorFlow source
