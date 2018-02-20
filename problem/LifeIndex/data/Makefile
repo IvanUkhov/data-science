@@ -1,6 +1,6 @@
-data_files := bli.csv imf.dat
+files := bli.csv imf.dat
 
-all: ${data_files}
+all: ${files}
 
 bli.csv:
 	curl 'http://stats.oecd.org/index.aspx?DataSetCode=BLI' \
@@ -14,6 +14,6 @@ imf.dat:
 		-L -o $@
 
 clean:
-	rm -f ${data_files}
+	rm -f ${files}
 
 .PHONY: all clean
