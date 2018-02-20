@@ -3,7 +3,7 @@ data_files := bli.csv imf.dat
 all: ${data_files}
 
 bli.csv:
-	curl http://stats.oecd.org/index.aspx?DataSetCode=BLI \
+	curl 'http://stats.oecd.org/index.aspx?DataSetCode=BLI' \
 		--cookie-jar $@.cookie -o /dev/null
 	curl 'http://stats.oecd.org/Download.ashx?type=csv&Delimiter=%2c&IncludeTimeSeriesIdentifiers=False&LabelType=CodeAndLabel&LanguageCode=en' \
 		--cookie $@.cookie -L -o $@
