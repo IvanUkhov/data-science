@@ -1,0 +1,22 @@
+---
+title: "Life Index"
+output:
+  html_document:
+    df_print: paged
+---
+
+## Introduction
+
+```{r setup}
+library(ggplot2)
+
+source('analysis.R')
+source('data.R')
+```
+
+## Exploration
+
+```{r, fig.width = 10, fig.height = 6, dev = 'svg'}
+data <- load('data/bli.csv', 'data/imf.dat')
+plot.scatter(data) + theme(aspect.ratio = 2 / 3)
+```

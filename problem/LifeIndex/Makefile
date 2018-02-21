@@ -1,12 +1,7 @@
 include ../problem.mk
-$(eval $(call problem,lifeindex,r))
+$(eval $(call problem,lifeindex,r,rstudio))
 
 data:
 	$(MAKE) -C $@
 
-start: clean
-
-clean:
-	@rm -rf .Rhistory .rstudio
-
-.PHONY: clean data
+.PHONY: data

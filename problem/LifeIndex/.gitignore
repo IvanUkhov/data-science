@@ -1,2 +1,5 @@
 *.csv
 *.dat
+*.html
+.Rhistory
+.rstudio
