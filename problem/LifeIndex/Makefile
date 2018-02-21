@@ -4,4 +4,9 @@ $(eval $(call problem,lifeindex,r))
 data:
 	$(MAKE) -C $@
 
-.PHONY: data
+start: clean
+
+clean:
+	@rm -rf .Rhistory .rstudio
+
+.PHONY: clean data
