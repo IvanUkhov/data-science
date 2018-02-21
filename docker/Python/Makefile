@@ -1,7 +1,2 @@
-name := playground-python
-
-image:
-	docker rmi ${name} || true
-	docker build -t ${name} .
-
-.PHONY: image
+include ../docker.mk
+$(eval $(call docker,python))
