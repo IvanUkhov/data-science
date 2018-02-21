@@ -1,21 +1,43 @@
 define problem
-export name := $(1)
-image := playground-$(or $(2),$(2),python)
+
+export problem := $(1)
+language := $(or $(2),$(2),python)
+image := $(or $(3),$(3),playground-$${language})
 
 all: start
 
-board:
-	docker exec -it $${name} tensorboard --logdir=/tmp/model
-
-clean:
-	docker exec -it $${name} rm -rf /tmp/model
-
 shell:
-	docker exec -it $${name} /bin/bash
+	docker exec -it $${problem} /bin/bash
+
+ifeq ($${language},python)
+clean:
+	docker exec -it $${problem} rm -rf /tmp/model
+
+monitor:
+	docker exec -it $${problem} tensorboard --logdir=/tmp/model
 
 start:
-	docker run -it --rm --name $${name} -w /problem \
-		-v "$${PWD}:/problem" -p 6006:6006 -p 8888:8888 $${image}
+	@echo "Jupyter: \033[0;32mhttp://localhost:8888\033[0m"
+	@echo "Tensor Board: \033[0;32mhttp://localhost:6006\033[0m"
+	@echo
+	docker run -it --rm --name $${problem} \
+		-v "$${PWD}:/home/jupyter" -w /home/jupyter \
+		-p 6006:6006 -p 8888:8888 \
+		$${image}
 
-.PHONY: all board clean shell start
+.PHONY: clean monitor
+endif
+
+ifeq ($${language},r)
+start:
+	@echo "RStudio: \033[0;32mhttp://localhost:8787\033[0m"
+	@echo
+	docker run -it --rm --name $${problem} \
+		-v "$${PWD}:/home/rstudio" -w /home/rstudio \
+		-p 8787:8787 \
+		$${image}
+endif
+
+.PHONY: all shell start
+
 endef
