@@ -17,11 +17,8 @@ monitor:
 	docker exec -it $${problem} tensorboard --logdir=/tmp/model
 
 start:
-	@echo "Jupyter: \033[0;32mhttp://localhost:8888\033[0m"
-	@echo "Tensor Board: \033[0;32mhttp://localhost:6006\033[0m"
-	@echo
 	docker run -it --rm --name $${problem} \
-		-v "$${PWD}:/home/jupyter" -w /home/jupyter \
+		-v "$${PWD}:/problem" -w /problem \
 		-p 6006:6006 -p 8888:8888 \
 		$${image}
 
@@ -30,11 +27,9 @@ endif
 
 ifeq ($${language},r)
 start:
-	@echo "RStudio: \033[0;32mhttp://localhost:8787\033[0m"
-	@echo
 	docker run -it --rm --name $${problem} \
-		-v "$${PWD}:/home/rstudio" -w /home/rstudio \
-		-p 8787:8787 \
+		-v "$${PWD}:/problem" -w /problem \
+		-p 8888:8888 \
 		$${image}
 endif
 
