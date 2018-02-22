@@ -8,8 +8,8 @@ output: html_document
 ```{r setup}
 library(ggplot2)
 
-source('analysis.R')
-source('data.R')
+source('problem/analysis.R')
+source('problem/data.R')
 ```
 
 ## Exploration
