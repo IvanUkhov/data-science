@@ -1,6 +1,7 @@
 import pandas as pd
 
 from sklearn.datasets import load_iris
+from sklearn.model_selection import train_test_split
 
 
 def load():
@@ -14,3 +15,16 @@ def load():
     data['Species'] = data['Species'].map(
         lambda i: problem.target_names[i]).astype('category')
     return data
+
+
+def load_split_train_test():
+    return split_train_test(load())
+
+
+def split_feature_target(data):
+    target = data.pop('Species')
+    return data, target
+
+
+def split_train_test(data):
+    return train_test_split(data, shuffle=True, test_size=0.3)
