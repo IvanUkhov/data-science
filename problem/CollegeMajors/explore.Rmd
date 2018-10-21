@@ -32,16 +32,46 @@ data_by_major_category <- data %>%
   arrange(desc(ShareWomen))
 ```
 
-## What major categories make more money?
+## What are the highest earning categories?
 
-```{r, dev = 'svg'}
+```{r, dev = 'svg', fig.width = 10}
 data %>%
   ggplot(aes(Major_category, Median, fill = Major_category)) +
   geom_boxplot() +
-  coord_flip() +
   expand_limits(y = 0) +
   scale_y_continuous(labels = dollar_format()) +
-  theme(axis.title.y = element_blank(),
-        legend.position = 'none')
+  theme(legend.position = 'none') +
+  labs(x = '') +
+  coord_flip()
+```
+
+## What are the highest earning majors?
+
+```{r, dev = 'svg', fig.width = 10}
+data %>%
+  filter(Sample_size >= 100) %>%
+  head(20) %>%
+  ggplot(aes(Major, Median, color = Major_category)) +
+  geom_point() +
+  geom_errorbar(aes(ymin = P25th, ymax = P75th)) +
+  expand_limits(y = 0) +
+  scale_y_continuous(labels = dollar_format()) +
+  labs(x = '') +
+  coord_flip()
+```
+
+## How does gender relate to earnings?
+
+```{r}
+data %>%
+  arrange(desc(Total)) %>%
+  head(20) %>%
+  mutate(Major = fct_reorder(Major, Total)) %>%
+  gather(Gender, Number, Men, Women) %>%
+  ggplot(aes(Major, Number, fill = Gender)) +
+  geom_col() +
+  scale_y_continuous(labels = comma_format()) +
+  labs(x = '') +
+  coord_flip()
 ```
 
