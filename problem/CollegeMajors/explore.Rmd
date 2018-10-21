@@ -7,6 +7,8 @@ output: html_notebook
 library(tidyverse)
 library(ggrepel)
 library(scales)
+
+theme_set(theme_light())
 ```
 
 ```{r, message = FALSE}
@@ -74,10 +76,10 @@ data %>%
             MedianSalary = sum(Median * Sample_size) / sum(Sample_size)) %>%
   mutate(ShareWomen = Women / Total) %>%
   ggplot(aes(ShareWomen, MedianSalary)) +
-  geom_point() +
-  geom_smooth(method = 'lm') +
-  geom_text_repel(aes(label = Major_category), force = 5) +
-  expand_limits(y = 0) +
-  scale_y_continuous(labels = dollar_format())
+  geom_point(aes(color = Major_category)) +
+  geom_smooth(method = 'lm', alpha = 0.1, color = 'black', size = 0.5) +
+  geom_text_repel(aes(label = Major_category), force = 1) +
+  scale_y_continuous(labels = dollar_format()) +
+  theme(legend.position = 'none')
 ```
 
