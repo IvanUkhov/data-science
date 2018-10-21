@@ -1,3 +1,3 @@
-# [Life Index][bli]
+# [Life Index][source]
 
-[bli]: http://stats.oecd.org/index.aspx?DataSetCode=BLI
+[source]: http://stats.oecd.org/index.aspx?DataSetCode=BLI

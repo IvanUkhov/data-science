@@ -1,3 +1,3 @@
-# [MovieLens]
+# [MovieLens][source]
 
-[movielens]: https://grouplens.org/datasets/movielens/
+[source]: https://grouplens.org/datasets/movielens/

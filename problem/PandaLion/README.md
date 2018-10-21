@@ -1,4 +1,4 @@
-# [Panda] [Lion]
+# [Panda][source1] [Lion][source2]
 
-[lion]: http://www.image-net.org/synset?wnid=n02129165
-[panda]: http://www.image-net.org/synset?wnid=n02510455
+[source1]: http://www.image-net.org/synset?wnid=n02510455
+[source2]: http://www.image-net.org/synset?wnid=n02129165

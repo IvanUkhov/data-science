@@ -1,3 +1,3 @@
-# [MNIST]
+# [MNIST][source]
 
-[mnist]: http://yann.lecun.com/exdb/mnist/
+[source]: http://yann.lecun.com/exdb/mnist/

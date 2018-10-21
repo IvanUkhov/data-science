@@ -1,3 +1,3 @@
-# [Adult]
+# [Adult][source]
 
-[adult]: https://archive.ics.uci.edu/ml/datasets/Adult
+[source]: https://archive.ics.uci.edu/ml/datasets/Adult
