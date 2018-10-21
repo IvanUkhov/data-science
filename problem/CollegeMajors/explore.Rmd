@@ -4,8 +4,9 @@ output: html_notebook
 ---
 
 ```{r, message = FALSE}
-library(scales)
 library(tidyverse)
+library(ggrepel)
+library(scales)
 ```
 
 ```{r, message = FALSE}
@@ -18,18 +19,6 @@ data <- data %>%
          Major = fct_reorder(Major, Median),
          Major_category = fct_reorder(Major_category, Median)) %>%
   arrange(desc(Median))
-```
-
-```{r}
-data_by_major_category <- data %>%
-  filter(!is.na(Total)) %>%
-  group_by(Major_category) %>%
-  summarize(Men = sum(Men),
-            Women = sum(Women),
-            Total = sum(Total),
-            MedianSalary = sum(Median * Sample_size) / sum(Sample_size)) %>%
-  mutate(ShareWomen = Women / Total) %>%
-  arrange(desc(ShareWomen))
 ```
 
 ## What are the highest earning categories?
@@ -62,7 +51,7 @@ data %>%
 
 ## How does gender relate to earnings?
 
-```{r}
+```{r, dev = 'svg', fig.width = 10}
 data %>%
   arrange(desc(Total)) %>%
   head(20) %>%
@@ -73,5 +62,22 @@ data %>%
   scale_y_continuous(labels = comma_format()) +
   labs(x = '') +
   coord_flip()
+```
+
+```{r, dev = 'svg', fig.width = 10}
+data %>%
+  filter(!is.na(Total)) %>%
+  group_by(Major_category) %>%
+  summarize(Men = sum(Men),
+            Women = sum(Women),
+            Total = sum(Total),
+            MedianSalary = sum(Median * Sample_size) / sum(Sample_size)) %>%
+  mutate(ShareWomen = Women / Total) %>%
+  ggplot(aes(ShareWomen, MedianSalary)) +
+  geom_point() +
+  geom_smooth(method = 'lm') +
+  geom_text_repel(aes(label = Major_category), force = 5) +
+  expand_limits(y = 0) +
+  scale_y_continuous(labels = dollar_format())
 ```
 
