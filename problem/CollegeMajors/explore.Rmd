@@ -3,7 +3,8 @@ title: 'College Majors'
 output: html_notebook
 ---
 
-```{r}
+```{r, message = FALSE}
+library(scales)
 library(tidyverse)
 ```
 
@@ -12,8 +13,35 @@ data <- read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/
 ```
 
 ```{r}
-data %>%
-  mutate(Major = str_to_title(Major)) %>%
-  mutate(Major = fct_reorder(Major, Median)) %>%
+data <- data %>%
+  mutate(Major = str_to_title(Major),
+         Major = fct_reorder(Major, Median),
+         Major_category = fct_reorder(Major_category, Median)) %>%
   arrange(desc(Median))
 ```
+
+```{r}
+data_by_major_category <- data %>%
+  filter(!is.na(Total)) %>%
+  group_by(Major_category) %>%
+  summarize(Men = sum(Men),
+            Women = sum(Women),
+            Total = sum(Total),
+            MedianSalary = sum(Median * Sample_size) / sum(Sample_size)) %>%
+  mutate(ShareWomen = Women / Total) %>%
+  arrange(desc(ShareWomen))
+```
+
+## What major categories make more money?
+
+```{r, dev = 'svg'}
+data %>%
+  ggplot(aes(Major_category, Median, fill = Major_category)) +
+  geom_boxplot() +
+  coord_flip() +
+  expand_limits(y = 0) +
+  scale_y_continuous(labels = dollar_format()) +
+  theme(axis.title.y = element_blank(),
+        legend.position = 'none')
+```
+
