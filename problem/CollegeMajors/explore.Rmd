@@ -1,0 +1,19 @@
+---
+title: 'College Majors'
+output: html_notebook
+---
+
+```{r}
+library(tidyverse)
+```
+
+```{r, message = FALSE}
+data <- read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2018-10-16/recent-grads.csv')
+```
+
+```{r}
+data %>%
+  mutate(Major = str_to_title(Major)) %>%
+  mutate(Major = fct_reorder(Major, Median)) %>%
+  arrange(desc(Median))
+```
