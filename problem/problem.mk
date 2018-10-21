@@ -43,6 +43,7 @@ start:
 	@echo "RStudio: \033[0;32mhttp://localhost:8787\033[0m"
 	@echo
 	docker run -it --rm --name $${problem} \
+		-e PASSWORD=password \
 		-v "$${PWD}:/home/rstudio" -w /home/rstudio \
 		-p 8787:8787 \
 		playground-$${image}
