@@ -5,7 +5,9 @@ output: html_notebook
 
 ```{r, message = FALSE}
 library(tidyverse)
+library(broom)
 library(ggrepel)
+library(plotly)
 library(scales)
 
 theme_set(theme_light())
@@ -86,7 +88,7 @@ data %>%
 ```
 
 ```{r, dev = 'svg', fig.width = 10}
-data %>%
+plot <- data %>%
   filter(!is.na(ShareWomen)) %>%
   mutate(Major_category = fct_lump(Major_category, 4)) %>%
   ggplot(aes(ShareWomen, Median, color = Major_category, size = Sample_size, label = Major)) +
@@ -95,5 +97,27 @@ data %>%
   expand_limits(y = 0) +
   scale_x_continuous(labels = percent_format()) +
   scale_y_continuous(labels = dollar_format())
+
+ggplotly(plot)
 ```
 
+```{r}
+data %>%
+  select(Major, Total, ShareWomen, Sample_size, Median) %>%
+  lm(Median ~ ShareWomen, data = ., weights = Sample_size) %>%
+  summary()
+```
+
+```{r}
+data %>%
+  select(Major, Total, ShareWomen, Sample_size, Median, Major_category) %>%
+  add_count(Major_category) %>%
+  filter(n >= 10) %>%
+  nest(-Major_category) %>%
+  mutate(model = map(data, ~ lm(Median ~ ShareWomen, data = ., weights = Sample_size)),
+         tidy_model = map(model, tidy)) %>%
+  unnest(tidy_model) %>%
+  filter(term == 'ShareWomen') %>%
+  arrange(estimate) %>%
+  mutate(fdr = p.adjust(p.value, method = 'fdr'))
+```
