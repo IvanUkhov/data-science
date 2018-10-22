@@ -79,7 +79,21 @@ data %>%
   geom_point(aes(color = Major_category)) +
   geom_smooth(method = 'lm', alpha = 0.1, color = 'black', size = 0.5) +
   geom_text_repel(aes(label = Major_category), force = 1) +
+  expand_limits(y = 0) +
+  scale_x_continuous(labels = percent_format()) +
   scale_y_continuous(labels = dollar_format()) +
   theme(legend.position = 'none')
+```
+
+```{r, dev = 'svg', fig.width = 10}
+data %>%
+  filter(!is.na(ShareWomen)) %>%
+  mutate(Major_category = fct_lump(Major_category, 4)) %>%
+  ggplot(aes(ShareWomen, Median, color = Major_category, size = Sample_size, label = Major)) +
+  geom_point() +
+  geom_smooth(aes(group = 1), method = 'lm', color = 'black', size = 0.5) +
+  expand_limits(y = 0) +
+  scale_x_continuous(labels = percent_format()) +
+  scale_y_continuous(labels = dollar_format())
 ```
 
