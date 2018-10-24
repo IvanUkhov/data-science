@@ -118,6 +118,9 @@ data %>%
          tidy_model = map(model, tidy)) %>%
   unnest(tidy_model) %>%
   filter(term == 'ShareWomen') %>%
-  arrange(estimate) %>%
-  mutate(fdr = p.adjust(p.value, method = 'fdr'))
+  arrange(p.value) %>%
+  mutate(i = row_number(),
+         m = length(i),
+         p.value.adjusted = p.value * m / i,
+         FDR = p.adjust(p.value, method = 'fdr'))
 ```
