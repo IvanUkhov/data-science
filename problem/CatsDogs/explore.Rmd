@@ -10,7 +10,7 @@ library(tidyverse)
 
 ```{r}
 data <- read.csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2018-09-11/cats_vs_dogs.csv') %>%
-  select(state, 
+  select(state,
          n_households,
          n_pet_households,
          n_cat_households, cat_population,
@@ -71,7 +71,7 @@ data1 %>%
   coord_flip()
 ```
 
-## Is There a Relation between Cats and Dogs per Households?
+## Is There a Relation between Cats and Dogs per Household?
 
 ```{r, dev = 'svg', fig.height = 6, fig.width = 10}
 data %>%
@@ -88,4 +88,3 @@ data %>%
   } %>%
   ggplotly()
 ```
-
