@@ -24,8 +24,7 @@ data <- read.csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/
   gather(Key, Value, -State, -TotalHouseholds, -PetHouseholds) %>%
   extract(Key, c('Pet', 'Key'), '(Cat|Dog)(Households|Pets)') %>%
   spread(Key, Value) %>%
-  select(State, Pet, Households, Pets, PetHouseholds, TotalHouseholds) %>%
-  mutate(Pet = fct_rev(Pet))
+  select(State, Pet, Households, Pets, PetHouseholds, TotalHouseholds)
 ```
 
 ## Which states like cats the most?
@@ -33,24 +32,26 @@ data <- read.csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/
 ```{r}
 data1 <- data %>%
   group_by(State) %>%
-  mutate(CatDogPets = sum(Pets),
-         CatPetLead = sum((Pet == 'Cat') * Pets) > sum((Pet == 'Dog') * Pets),
-         CatHouseholdLead = sum((Pet == 'Cat') * Households) > sum((Pet == 'Dog') * Households)) %>%
+  mutate(CatDogHouseholds = sum(Households),
+         CatDogPets = sum(Pets),
+         CatHouseholdFraction = sum((Pet == 'Cat') * Households) / CatDogHouseholds,
+         CatPetFraction = sum((Pet == 'Cat') * Pets) / CatDogPets) %>%
   ungroup() %>%
-  mutate(PetFraction = Pets / CatDogPets,
-         HouseholdFraction = Households / PetHouseholds)
+  mutate(HouseholdFraction = Households / CatDogHouseholds,
+         PetFraction = Pets / CatDogPets)
 ```
 
 ### By Households
 
 ```{r, dev = 'svg', fig.height = 3.5, fig.width = 10}
 data1 %>%
-  filter(CatHouseholdLead) %>%
+  filter(CatHouseholdFraction > 0.5) %>%
   mutate(State = fct_reorder(State, (Pet == 'Cat') * HouseholdFraction)) %>%
-  ggplot(aes(State, HouseholdFraction, fill = Pet)) +
+  ggplot(aes(State, HouseholdFraction, fill = State)) +
+  facet_grid(. ~ Pet) +
   geom_col() +
-  labs(y = 'Fraction') +
-  theme(legend.title = element_blank(),
+  labs(y = 'Fraction of households with pets') +
+  theme(legend.position = 'none',
         axis.title.y = element_blank()) +
   coord_flip()
 ```
@@ -59,12 +60,12 @@ data1 %>%
 
 ```{r, dev = 'svg', fig.height = 10, fig.width = 10}
 data1 %>%
-  filter(CatPetLead) %>%
-  mutate(State = fct_reorder(State, (Pet == 'Cat') * PetFraction)) %>%
-  ggplot(aes(State, PetFraction, fill = Pet)) +
+  filter(CatPetFraction > 0.5 & Pet == 'Cat') %>%
+  mutate(State = fct_reorder(State, CatPetFraction)) %>%
+  ggplot(aes(State, PetFraction, fill = State)) +
   geom_col() +
-  labs(y = 'Fraction') +
-  theme(legend.title = element_blank(),
+  labs(y = 'Fraction of cats among cats and dogs') +
+  theme(legend.position = 'none',
         axis.title.y = element_blank()) +
   coord_flip()
 ```
