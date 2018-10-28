@@ -33,7 +33,7 @@ data <- read.csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/
 data %>%
   mutate(Fraction = Households / PetHouseholds,
          Pet = fct_rev(Pet),
-         State = fct_reorder(State, if_else(Pet == 'Cat', Fraction, 0))) %>%
+         State = fct_reorder(State, (Pet == 'Cat') * Fraction)) %>%
   ggplot(aes(State, Fraction, fill = Pet)) +
   geom_col() +
   coord_flip()
