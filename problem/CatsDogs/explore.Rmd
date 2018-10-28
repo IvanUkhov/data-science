@@ -24,7 +24,8 @@ data <- read.csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/
   gather(Key, Value, -State, -TotalHouseholds, -PetHouseholds) %>%
   extract(Key, c('Pet', 'Key'), '(Cat|Dog)(Households|Pets)') %>%
   spread(Key, Value) %>%
-  select(State, Pet, Households, Pets, PetHouseholds, TotalHouseholds)
+  select(State, Pet, Households, Pets, PetHouseholds, TotalHouseholds) %>%
+  mutate(Pet = fct_rev(Pet))
 ```
 
 ## Which states like cats the most?
@@ -36,8 +37,7 @@ data1 <- data %>%
          CatPetLead = sum((Pet == 'Cat') * Pets) > sum((Pet == 'Dog') * Pets),
          CatHouseholdLead = sum((Pet == 'Cat') * Households) > sum((Pet == 'Dog') * Households)) %>%
   ungroup() %>%
-  mutate(Pet = fct_rev(Pet),
-         PetFraction = Pets / CatDogPets,
+  mutate(PetFraction = Pets / CatDogPets,
          HouseholdFraction = Households / PetHouseholds)
 ```
 
