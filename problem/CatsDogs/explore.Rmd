@@ -4,6 +4,7 @@ output: html_notebook
 ---
 
 ```{r, message = FALSE}
+library(plotly)
 library(tidyverse)
 ```
 
@@ -27,7 +28,7 @@ data <- read.csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/
   select(State, Pet, Households, Pets, PetHouseholds, TotalHouseholds)
 ```
 
-## Which states like cats the most?
+## Which States Like Cats the Most?
 
 ```{r}
 data1 <- data %>%
@@ -69,3 +70,22 @@ data1 %>%
         axis.title.y = element_blank()) +
   coord_flip()
 ```
+
+## Is There a Relation between Cats and Dogs per Households?
+
+```{r, dev = 'svg', fig.height = 6, fig.width = 10}
+data %>%
+  select(State, Pet, Pets, TotalHouseholds) %>%
+  spread(Pet, Pets) %>%
+  mutate(CatsPerHousehold = Cat / TotalHouseholds,
+         DogsPerHousehold = Dog / TotalHouseholds,
+         State = fct_reorder(State, CatsPerHousehold)) %>% {
+    ggplot(., aes(CatsPerHousehold, DogsPerHousehold, size = TotalHouseholds)) +
+    geom_smooth(method = 'lm', show.legend = FALSE, color = 'gray50', se = FALSE) +
+    geom_point(aes(color = State)) +
+    labs(x = 'Cats per household', y = 'Dogs per household') +
+    guides(color = FALSE, size = guide_legend(title = 'Total households'))
+  } %>%
+  ggplotly()
+```
+
