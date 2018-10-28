@@ -29,13 +29,42 @@ data <- read.csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/
 
 ## Which states like cats the most?
 
-```{r, dev = 'svg', fig.height = 15, fig.width = 10}
-data %>%
-  mutate(Fraction = Households / PetHouseholds,
-         Pet = fct_rev(Pet),
-         State = fct_reorder(State, (Pet == 'Cat') * Fraction)) %>%
-  ggplot(aes(State, Fraction, fill = Pet)) +
+```{r}
+data1 <- data %>%
+  group_by(State) %>%
+  mutate(CatDogPets = sum(Pets),
+         CatPetLead = sum((Pet == 'Cat') * Pets) > sum((Pet == 'Dog') * Pets),
+         CatHouseholdLead = sum((Pet == 'Cat') * Households) > sum((Pet == 'Dog') * Households)) %>%
+  ungroup() %>%
+  mutate(Pet = fct_rev(Pet),
+         PetFraction = Pets / CatDogPets,
+         HouseholdFraction = Households / PetHouseholds)
+```
+
+### By Households
+
+```{r, dev = 'svg', fig.height = 3.5, fig.width = 10}
+data1 %>%
+  filter(CatHouseholdLead) %>%
+  mutate(State = fct_reorder(State, (Pet == 'Cat') * HouseholdFraction)) %>%
+  ggplot(aes(State, HouseholdFraction, fill = Pet)) +
   geom_col() +
+  labs(y = 'Fraction') +
+  theme(legend.title = element_blank(),
+        axis.title.y = element_blank()) +
   coord_flip()
 ```
 
+### By Cat and Dog Pets
+
+```{r, dev = 'svg', fig.height = 10, fig.width = 10}
+data1 %>%
+  filter(CatPetLead) %>%
+  mutate(State = fct_reorder(State, (Pet == 'Cat') * PetFraction)) %>%
+  ggplot(aes(State, PetFraction, fill = Pet)) +
+  geom_col() +
+  labs(y = 'Fraction') +
+  theme(legend.title = element_blank(),
+        axis.title.y = element_blank()) +
+  coord_flip()
+```
