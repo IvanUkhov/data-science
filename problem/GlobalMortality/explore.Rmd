@@ -53,20 +53,19 @@ data %>%
 ## How do the percentages change over time?
 
 ```{r, dev = 'svg'}
-plot <- data %>%
+data %>%
   group_by(Cause) %>%
   mutate(PercentageMean = mean(Percentage)) %>%
   ungroup() %>%
   mutate(Cause = fct_reorder(Cause, PercentageMean)) %>%
-  filter(PercentageMean > 1) %>%
-  ggplot(aes(Year, Percentage, color = Cause)) +
-  geom_line() +
-  scale_x_continuous(breaks = seq(min(data$Year), max(data$Year), by = 4)) +
-  scale_y_log10(breaks = c(1, seq(2, 8, by = 2), seq(10, 100, by = 10))) +
-  theme(legend.position = 'right',
-        legend.title = element_blank()) +
-  guides(color = guide_legend(reverse = TRUE))
-
-ggplotly(plot)
+  filter(PercentageMean > 1) %>% {
+    ggplot(., aes(Year, Percentage, color = Cause)) +
+    geom_line() +
+    scale_x_continuous(breaks = seq(min(data$Year), max(data$Year), by = 4)) +
+    scale_y_log10(breaks = c(1, seq(2, 8, by = 2), seq(10, 100, by = 10))) +
+    theme(legend.position = 'right', legend.title = element_blank()) +
+    guides(color = guide_legend(reverse = TRUE))
+  } %>%
+  ggplotly()
 ```
 
