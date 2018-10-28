@@ -1,11 +1,13 @@
 ---
 title: 'Global Mortality'
-output: html_notebook
+output: 'html_document'
 ---
 
-```{r}
+```{r, message = FALSE}
 library(openxlsx)
 library(tidyverse)
+
+theme_set(theme_light())
 ```
 
 ```{r}
@@ -16,10 +18,11 @@ data <- read.xlsx('https://github.com/rfordatascience/tidytuesday/raw/master/dat
   gather('Cause', 'Percentage', -Year) %>%
   mutate(Cause = str_replace(Cause, '\\.\\(%\\)', ''),
          Cause = str_replace_all(Cause, '\\.', ' '),
-         Cause = str_to_title(Cause))
+         Cause = str_to_title(Cause)) %>%
+  filter(!is.na(Percentage))
 ```
 
-## Top 10 Causes of Death in Sweden in 2016
+## What are the most common causes of death in Sweden in 2016?
 
 ```{r, dev = 'svg'}
 data %>%
@@ -28,6 +31,39 @@ data %>%
   mutate(Cause = fct_reorder(Cause, Percentage)) %>%
   ggplot(aes(Cause, Percentage, fill = Cause)) +
   geom_col() +
-  theme(legend.position = 'none') +
+  theme(axis.title.y = element_blank(), legend.position = 'none') +
   coord_flip()
 ```
+
+## What are the least common causes of death in Sweden in 2016?
+
+```{r, dev = 'svg'}
+data %>%
+  filter(Year == max(Year)) %>%
+  arrange(Percentage) %>%
+  head(20) %>%
+  mutate(Cause = fct_reorder(Cause, desc(Percentage))) %>%
+  ggplot(aes(Cause, Percentage, fill = Cause)) +
+  geom_col() +
+  theme(axis.title.y = element_blank(), legend.position = 'none') +
+  coord_flip()
+```
+
+## How do the percentages change over time?
+
+```{r, dev = 'svg'}
+data %>%
+  group_by(Cause) %>%
+  mutate(PercentageMean = mean(Percentage)) %>%
+  ungroup() %>%
+  mutate(Cause = fct_reorder(Cause, PercentageMean)) %>%
+  filter(PercentageMean > 1) %>%
+  ggplot(aes(Year, Percentage, color = Cause)) +
+  geom_line() +
+  scale_x_continuous(breaks = seq(min(data$Year), max(data$Year), by = 4)) +
+  scale_y_log10(breaks = c(1, seq(2, 8, by = 2), seq(10, 100, by = 10))) +
+  theme(legend.position = 'right',
+        legend.title = element_blank()) +
+  guides(color = guide_legend(reverse = TRUE))
+```
+
