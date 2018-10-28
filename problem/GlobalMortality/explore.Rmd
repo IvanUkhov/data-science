@@ -18,3 +18,16 @@ data <- read.xlsx('https://github.com/rfordatascience/tidytuesday/raw/master/dat
          Cause = str_replace_all(Cause, '\\.', ' '),
          Cause = str_to_title(Cause))
 ```
+
+## Top 10 Causes of Death in Sweden in 2016
+
+```{r, dev = 'svg'}
+data %>%
+  filter(Year == max(Year)) %>%
+  mutate(Cause = fct_lump(Cause, n = 10, w = Percentage, other_level = 'Other')) %>%
+  mutate(Cause = fct_reorder(Cause, Percentage)) %>%
+  ggplot(aes(Cause, Percentage, fill = Cause)) +
+  geom_col() +
+  theme(legend.position = 'none') +
+  coord_flip()
+```
