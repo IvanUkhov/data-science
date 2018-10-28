@@ -1,0 +1,41 @@
+---
+title: 'Cats versus Dogs'
+output: html_notebook
+---
+
+```{r, message = FALSE}
+library(tidyverse)
+```
+
+```{r}
+data <- read.csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2018-09-11/cats_vs_dogs.csv') %>%
+  select(state, 
+         n_households,
+         n_pet_households,
+         n_cat_households, cat_population,
+         n_dog_households, dog_population) %>%
+  rename(State = state,
+         TotalHouseholds = n_households,
+         PetHouseholds = n_pet_households,
+         CatHouseholds = n_cat_households,
+         DogHouseholds = n_dog_households,
+         CatPets = cat_population,
+         DogPets = dog_population) %>%
+  gather(Key, Value, -State, -TotalHouseholds, -PetHouseholds) %>%
+  extract(Key, c('Pet', 'Key'), '(Cat|Dog)(Households|Pets)') %>%
+  spread(Key, Value) %>%
+  select(State, Pet, Households, Pets, PetHouseholds, TotalHouseholds)
+```
+
+## Which states like cats the most?
+
+```{r, dev = 'svg', fig.height = 15, fig.width = 10}
+data %>%
+  mutate(Fraction = Households / PetHouseholds,
+         Pet = fct_rev(Pet),
+         State = fct_reorder(State, if_else(Pet == 'Cat', Fraction, 0))) %>%
+  ggplot(aes(State, Fraction, fill = Pet)) +
+  geom_col() +
+  coord_flip()
+```
+
