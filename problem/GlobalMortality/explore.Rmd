@@ -1,0 +1,20 @@
+---
+title: 'Global Mortality'
+output: html_notebook
+---
+
+```{r}
+library(openxlsx)
+library(tidyverse)
+```
+
+```{r}
+data <- read.xlsx('https://github.com/rfordatascience/tidytuesday/raw/master/data/2018-04-16/global_mortality.xlsx') %>%
+  filter(country == 'Sweden') %>%
+  mutate(Year = year) %>%
+  select(-c(country, country_code, year)) %>%
+  gather('Cause', 'Percentage', -Year) %>%
+  mutate(Cause = str_replace(Cause, '\\.\\(%\\)', ''),
+         Cause = str_replace_all(Cause, '\\.', ' '),
+         Cause = str_to_title(Cause))
+```
