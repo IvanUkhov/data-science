@@ -22,7 +22,7 @@ data <- read.xlsx('https://github.com/rfordatascience/tidytuesday/raw/master/dat
   filter(!is.na(Percentage))
 ```
 
-## What are the most common causes of death in Sweden in 2016?
+## What are the most common causes of death in 2016?
 
 ```{r, dev = 'svg'}
 data %>%
@@ -35,7 +35,7 @@ data %>%
   coord_flip()
 ```
 
-## What are the least common causes of death in Sweden in 2016?
+## What are the least common causes of death in 2016?
 
 ```{r, dev = 'svg'}
 data %>%
