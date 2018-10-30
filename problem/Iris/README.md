@@ -1,3 +1,5 @@
-# [Iris][source]
+# Iris
 
-[source]: http://archive.ics.uci.edu/ml/datasets/Iris
+## References
+
+* [Iris data set](http://archive.ics.uci.edu/ml/datasets/Iris) (UCI)

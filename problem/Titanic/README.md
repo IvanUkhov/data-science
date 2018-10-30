@@ -1,3 +1,5 @@
-# [Titanic][source]
+# Titanic
 
-[source]: https://www.kaggle.com/c/titanic
+## References
+
+* [Titanic: Machine learning from disaster](https://www.kaggle.com/c/titanic) (Kaggle)

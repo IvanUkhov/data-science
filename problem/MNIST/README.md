@@ -1,3 +1,5 @@
-# [MNIST][source]
+# MNIST
 
-[source]: http://yann.lecun.com/exdb/mnist/
+## References
+
+* [MNIST](http://yann.lecun.com/exdb/mnist/) (Yann LeCun)

@@ -1,3 +1,5 @@
-# [MovieLens][source]
+# MovieLens
 
-[source]: https://grouplens.org/datasets/movielens/
+## References
+
+* [MovieLens](https://grouplens.org/datasets/movielens/)

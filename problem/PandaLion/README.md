@@ -1,4 +1,6 @@
-# [Panda][source1] [Lion][source2]
+# Panda Lion
 
-[source1]: http://www.image-net.org/synset?wnid=n02510455
-[source2]: http://www.image-net.org/synset?wnid=n02129165
+## References
+
+* [Giant panda, panda, panda bear, coon bear, Ailuropoda melanoleuca](http://www.image-net.org/synset?wnid=n02510455) (ImageNet)
+* [Lion, king of beasts, Panthera leo](http://www.image-net.org/synset?wnid=n02129165) (ImageNet)
