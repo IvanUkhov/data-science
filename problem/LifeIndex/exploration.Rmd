@@ -1,5 +1,5 @@
 ---
-title: "Life Index"
+title: 'Life Index'
 output: html_document
 ---
 

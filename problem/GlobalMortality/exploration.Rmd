@@ -1,6 +1,6 @@
 ---
 title: 'Global Mortality'
-output: 'html_document'
+output: html_document
 ---
 
 ```{r, message = FALSE}
