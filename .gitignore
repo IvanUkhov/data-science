@@ -1,6 +1,7 @@
 *.csv
 *.html
+.ipynb_checkpoints
 .RData
 .Rhistory
-.ipynb_checkpoints
 .rstudio
+output
