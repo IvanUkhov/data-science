@@ -28,7 +28,7 @@ start:
 .PHONY: start
 endif
 
-ifeq ($${image},rstudio)
+ifeq ($${image},r)
 start:
 	@echo "Address:  \033[0;32mhttp://localhost:8787\033[0m"
 	@echo "User:     \033[0;32mrstudio\033[0m"
