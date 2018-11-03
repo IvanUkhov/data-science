@@ -1,5 +1,5 @@
 include ../problem.mk
-$(eval $(call problem,lifeindex,r,rstudio))
+$(eval $(call problem,life-index,r,rstudio))
 
 data:
 	$(MAKE) -C $@

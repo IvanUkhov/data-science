@@ -1,5 +1,5 @@
 include ../../problem.mk
-$(eval $(call problem,pandalion))
+$(eval $(call problem,panda-lion))
 
 export x ?= lion
 export y ?= panda

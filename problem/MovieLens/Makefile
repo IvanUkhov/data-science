@@ -1,5 +1,5 @@
 include ../problem.mk
-$(eval $(call problem,movielens))
+$(eval $(call problem,movie-lens))
 
 data:
 	$(MAKE) -C $@
