@@ -11,19 +11,19 @@ library(tidyverse)
 
 ```{r}
 input <- list(
-  Baseline = 10,
-  Power = 80,
-  SignificanceLevel = 5
+  Conversion = 0.1,
+  Power = 0.8,
+  Significance = 0.05
 )
 ```
 
 ```{r}
-data <- seq(1000, 1e4, by = 1000) %>%
-  map_df(~ power.prop.test(p1 = input$Baseline / 100,
-                           p2 = seq(input$Baseline / 100, input$Baseline * 1.5 / 100, by = 0.001),
+data <- seq(1000, 10000, by = 1000) %>%
+  map_df(~ power.prop.test(p1 = input$Conversion,
+                           p2 = seq(input$Conversion, 1.5 * input$Conversion, by = 0.001),
                            n = .x,
                            power = NULL,
-                           sig.level = input$SignificanceLevel / 100) %>%
+                           sig.level = input$Significance) %>%
          tidy()) %>%
   mutate(effect = (p2 / p1 - 1))
 ```
@@ -31,7 +31,7 @@ data <- seq(1000, 1e4, by = 1000) %>%
 ```{r, dev = 'svg', fig.width = 20, fig.height = 10}
 plot <- data %>%
   ggplot(aes(effect, power, color = n, group = n)) +
-  geom_hline(yintercept = input$Power / 100, linetype = 2, color = 'gray50', alpha = 0.5, size = 1.5) +
+  geom_hline(yintercept = input$Power, linetype = 2, color = 'gray50', alpha = 0.5, size = 1.5) +
   geom_line(size = 1.5, alpha = 0.7) +
   theme_minimal(base_size = 18) +
   scale_y_continuous(labels = scales::percent_format(accuracy = 1), limits = c(0, NA)) +
