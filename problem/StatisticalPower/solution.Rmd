@@ -39,6 +39,6 @@ plot <- data %>%
   scale_color_gradient(high = '#0077cc', low = '#b8e0c5', labels = scales::comma_format()) +
   labs(x = 'Effect size', y = 'Power', color = 'Sample size')
 
-ggplotly(plot)
+ggplotly(plot, tooltip = c('x', 'y', 'group'))
 ```
 
