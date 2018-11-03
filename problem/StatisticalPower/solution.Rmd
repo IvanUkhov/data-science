@@ -5,6 +5,7 @@ output: html_notebook
 
 ```{r, message = FALSE}
 library(broom)
+library(plotly)
 library(tidyverse)
 ```
 
@@ -16,22 +17,28 @@ input <- list(
 )
 ```
 
-```{r, dev = 'svg', fig.width = 20, fig.height = 10}
-seq(1000, 1e4, by = 1000) %>%
+```{r}
+data <- seq(1000, 1e4, by = 1000) %>%
   map_df(~ power.prop.test(p1 = input$Baseline / 100,
                            p2 = seq(input$Baseline / 100, input$Baseline * 1.5 / 100, by = 0.001),
                            n = .x,
                            power = NULL,
                            sig.level = input$SignificanceLevel / 100) %>%
          tidy()) %>%
-  mutate(effect = (p2 / p1 - 1)) %>%
+  mutate(effect = (p2 / p1 - 1))
+```
+
+```{r, dev = 'svg', fig.width = 20, fig.height = 10}
+plot <- data %>%
   ggplot(aes(effect, power, color = n, group = n)) +
   geom_hline(yintercept = input$Power / 100, linetype = 2, color = 'gray50', alpha = 0.5, size = 1.5) +
   geom_line(size = 1.5, alpha = 0.7) +
   theme_minimal(base_size = 18) +
-  scale_y_continuous(labels = scales::percent_format(), limits = c(0, NA)) +
-  scale_x_continuous(labels = scales::percent_format()) +
+  scale_y_continuous(labels = scales::percent_format(accuracy = 1), limits = c(0, NA)) +
+  scale_x_continuous(labels = scales::percent_format(accuracy = 1)) +
   scale_color_gradient(high = '#0077cc', low = '#b8e0c5', labels = scales::comma_format()) +
   labs(x = 'Effect size', y = 'Power', color = 'Sample size')
+
+ggplotly(plot)
 ```
 
