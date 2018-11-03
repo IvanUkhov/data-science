@@ -24,7 +24,7 @@ data <- seq(1000, 10000, by = 1000) %>%
                            n = .x,
                            power = NULL,
                            sig.level = input$Significance) %>%
-         tidy()) %>%
+           tidy()) %>%
   mutate(effect = (p2 / p1 - 1))
 ```
 
