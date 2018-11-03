@@ -28,20 +28,6 @@ start:
 .PHONY: start
 endif
 
-ifeq ($${image},rnotebook)
-start:
-	@echo "Address: \033[0;32mhttp://localhost:8888\033[0m"
-	@echo
-	docker run -it --rm \
-		--name $${problem} \
-		--publish 8888:8888 \
-		--volume "$${PWD}:/home/jupyter" \
-		--workdir /home/jupyter \
-		data-science-$${image}
-
-.PHONY: start
-endif
-
 ifeq ($${image},rstudio)
 start:
 	@echo "Address:  \033[0;32mhttp://localhost:8787\033[0m"
