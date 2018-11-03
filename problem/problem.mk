@@ -10,43 +10,43 @@ shell:
 	docker exec -it $${problem} /bin/bash
 
 ifeq ($${image},python)
-clean:
-	docker exec -it $${problem} rm -rf /tmp/model
-
-monitor:
-	docker exec -it $${problem} tensorboard --logdir=/tmp/model
-
 start:
-	@echo "Jupyter: \033[0;32mhttp://localhost:8888\033[0m"
-	@echo "TensorBoard: \033[0;32mhttp://localhost:6006\033[0m"
+	@echo "Address: \033[0;32mhttp://localhost:8888\033[0m"
 	@echo
-	docker run -it --rm --name $${problem} \
-		-v "$${PWD}:/home/jupyter" -w /home/jupyter \
-		-p 6006:6006 -p 8888:8888 \
-		playground-$${image}
-
-.PHONY: clean monitor
+	docker run -it --rm \
+		--name $${problem} \
+		--publish 6006:6006 \
+		--publish 8888:8888 \
+		--volume "$${PWD}:/home/jupyter" \
+		--workdir /home/jupyter \
+		data-science-$${image}
 endif
 
 ifeq ($${image},rnotebook)
 start:
-	@echo "Jupyter: \033[0;32mhttp://localhost:8888\033[0m"
+	@echo "Address: \033[0;32mhttp://localhost:8888\033[0m"
 	@echo
-	docker run -it --rm --name $${problem} \
-		-v "$${PWD}:/home/jupyter" -w /home/jupyter \
-		-p 8888:8888 \
-		playground-$${image}
+	docker run -it --rm \
+		--name $${problem} \
+		--publish 8888:8888 \
+		--volume "$${PWD}:/home/jupyter" \
+		--workdir /home/jupyter \
+		data-science-$${image}
 endif
 
 ifeq ($${image},rstudio)
 start:
-	@echo "RStudio: \033[0;32mhttp://localhost:8787\033[0m"
+	@echo "Address:  \033[0;32mhttp://localhost:8787\033[0m"
+	@echo "User:     \033[0;32mrstudio\033[0m"
+	@echo "Password: \033[0;32mpassword\033[0m"
 	@echo
-	docker run -it --rm --name $${problem} \
-		-e PASSWORD=password \
-		-v "$${PWD}:/home/rstudio" -w /home/rstudio \
-		-p 8787:8787 \
-		playground-$${image}
+	docker run -it --rm \
+		--env PASSWORD=password \
+		--name $${problem} \
+		--publish 8787:8787 \
+		--volume "$${PWD}:/home/rstudio" \
+		--workdier /home/rstudio \
+		data-science-$${image}
 endif
 
 .PHONY: all shell start

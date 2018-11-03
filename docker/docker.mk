@@ -1,6 +1,6 @@
 define docker
 
-name := playground-$(1)
+name := data-science-$(1)
 
 image:
 	docker rmi $${name} || true
