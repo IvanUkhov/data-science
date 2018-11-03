@@ -4,10 +4,14 @@ export problem := $(1)
 language := $(or $(2),$(2),python)
 image := $(or $(3),$(3),$${language})
 
+ifneq ($${image},)
 all: start
 
 shell:
 	docker exec -it $${problem} /bin/bash
+
+.PHONY: all shell
+endif
 
 ifeq ($${image},python)
 start:
@@ -20,6 +24,8 @@ start:
 		--volume "$${PWD}:/home/jupyter" \
 		--workdir /home/jupyter \
 		data-science-$${image}
+
+.PHONY: start
 endif
 
 ifeq ($${image},rnotebook)
@@ -32,6 +38,8 @@ start:
 		--volume "$${PWD}:/home/jupyter" \
 		--workdir /home/jupyter \
 		data-science-$${image}
+
+.PHONY: start
 endif
 
 ifeq ($${image},rstudio)
@@ -47,8 +55,18 @@ start:
 		--volume "$${PWD}:/home/rstudio" \
 		--workdier /home/rstudio \
 		data-science-$${image}
+
+.PHONY: start
 endif
 
-.PHONY: all shell start
+ifeq ($${language},python)
+tensorboard-kill:
+	kill -9 $$$$(ps -ef | grep bin/tensorboard | head -1 | tr -s ' ' | cut -d ' ' -f2)
+
+tensorboard-start:
+	tensorboard --logdir=output
+
+.PHONY: tensorboard-kill tensorboard-start
+endif
 
 endef
