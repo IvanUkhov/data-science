@@ -11,28 +11,24 @@ library(tidyverse)
 
 ```{r}
 data <- gapminder %>%
-  rename(expectancy = lifeExp)
+  rename(expectancy = lifeExp,
+         population = pop) %>%
+  select(year, continent, country, expectancy, population)
 ```
 
-```{r, dev = 'svg'}
-data %>%
-  ggplot(aes(year, expectancy, group = country)) +
-    geom_line(alpha = 0.2)
-```
-
-## Life Expectancy in Sweden
+## Sweden
 
 ```{r, dev = 'svg', fig.width = 10, fig.height = 4}
-data <- data %>%
+sweden <- data %>%
   filter(country == 'Sweden')
 
-model <- lm(expectancy ~ year, data = data)
+model <- lm(expectancy ~ year, data = sweden)
 
-plot1 <- data %>%
+plot1 <- sweden %>%
   ggplot(aes(year, expectancy)) +
   geom_line()
 
-plot2 <- data %>%
+plot2 <- sweden %>%
   add_residuals(model, 'residual') %>%
   ggplot(aes(year, residual)) +
   geom_hline(yintercept = 0, color = 'white', size = 3) +
@@ -40,3 +36,32 @@ plot2 <- data %>%
 
 cowplot::plot_grid(plot1, plot2)
 ```
+
+## All Countries
+
+```{r, dev = 'svg'}
+data %>%
+  ggplot(aes(year, expectancy, group = country)) +
+    geom_line(alpha = 0.2)
+```
+
+```{r}
+glance <- data %>%
+  group_by(continent, country) %>%
+  nest() %>%
+  mutate(model = map(data, ~ lm(expectancy ~ year, data = .)),
+         glance = map(model, broom::glance)) %>%
+  unnest(glance, .drop = TRUE)
+
+glance %>%
+  ggplot(aes(continent, r.squared)) +
+  geom_jitter(width = 0.25)
+```
+
+```{r}
+data %>%
+  semi_join(glance %>% filter(r.squared < 0.25), by = 'country') %>%
+  ggplot(aes(year, expectancy, color = country)) +
+  geom_line()
+```
+
