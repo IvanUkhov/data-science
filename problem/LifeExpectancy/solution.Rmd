@@ -35,6 +35,7 @@ plot1 <- data %>%
 plot2 <- data %>%
   add_residuals(model, 'residual') %>%
   ggplot(aes(year, residual)) +
+  geom_hline(yintercept = 0, color = 'white', size = 3) +
   geom_line()
 
 cowplot::plot_grid(plot1, plot2)
