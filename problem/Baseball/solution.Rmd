@@ -1,0 +1,10 @@
+---
+title: 'Baseball'
+output: html_document
+---
+
+```{r, message = FALSE}
+library(Lahman)
+library(tidyverse)
+```
+
