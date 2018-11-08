@@ -8,3 +8,33 @@ library(Lahman)
 library(tidyverse)
 ```
 
+```{r}
+data <- Batting %>%
+  filter(AB > 0) %>%
+  anti_join(Pitching, by = 'playerID') %>%
+  group_by(playerID) %>%
+  summarize(H = sum(H), AB = sum(AB)) %>%
+  mutate(average = H / AB) %>%
+  inner_join(Master %>%
+               select(playerID, nameFirst, nameLast) %>%
+               unite(name, nameFirst, nameLast, sep = ' '),
+             by = 'playerID') %>%
+  select(name, H, AB, average)
+```
+
+## Who are the “best” battors?
+
+```{r}
+data %>%
+  arrange(desc(average)) %>%
+  head(10)
+```
+
+## Who are the “worst” battors?
+
+```{r}
+data %>%
+  arrange(average) %>%
+  head(10)
+```
+
