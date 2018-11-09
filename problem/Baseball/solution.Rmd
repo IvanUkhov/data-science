@@ -22,13 +22,6 @@ data <- Batting %>%
   select(name, H, AB, average)
 ```
 
-```{r}
-data %>%
-  filter(AB > 500) %>%
-  ggplot(aes(average)) +
-  geom_histogram(bins = 80)
-```
-
 ## Who are the best battors?
 
 ```{r}
@@ -47,6 +40,18 @@ parameters <- data %>%
                  list(shape1 = 1, shape2 = 1),
                  lower = c(0, 0)) %>%
   .$estimate
+```
+
+```{r}
+data %>%
+  filter(AB > 500) %>%
+  ggplot(aes(average)) +
+  geom_histogram(aes(y = ..density..), bins = 80) +
+  geom_line(data = tibble(x = seq(0.15, 0.4, by = 0.01)) %>%
+                     mutate(y = dbeta(x, parameters[1], parameters[2])),
+            mapping = aes(x = x, y = y),
+            color = 'red',
+            size = 1)
 ```
 
 ```{r}
