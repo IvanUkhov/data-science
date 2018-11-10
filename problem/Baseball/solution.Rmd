@@ -14,19 +14,21 @@ data <- Batting %>%
   anti_join(Pitching, by = 'playerID') %>%
   group_by(playerID) %>%
   summarize(H = sum(H), AB = sum(AB)) %>%
-  mutate(estimate = H / AB) %>%
   inner_join(Master %>%
                select(playerID, nameFirst, nameLast) %>%
                unite(name, nameFirst, nameLast, sep = ' '),
              by = 'playerID') %>%
-  select(name, H, AB, estimate)
+  select(name, H, AB)
 ```
 
 ## Who are the best battors?
 
 ```{r}
+data <- data %>%
+  mutate(mean = H / AB)
+
 data %>%
-  arrange(desc(estimate)) %>%
+  arrange(desc(mean)) %>%
   head(10)
 ```
 
@@ -35,7 +37,7 @@ data %>%
 ```{r}
 parameters <- data %>%
   filter(AB > 500) %>%
-  .$estimate %>%
+  .$mean %>%
   MASS::fitdistr(dbeta,
                  list(shape1 = 1, shape2 = 1),
                  lower = c(0, 0)) %>%
@@ -45,7 +47,7 @@ parameters <- data %>%
 ```{r}
 data %>%
   filter(AB > 500) %>%
-  ggplot(aes(estimate)) +
+  ggplot(aes(mean)) +
   geom_histogram(aes(y = ..density..), bins = 80) +
   geom_line(data = tibble(x = seq(0.15, 0.4, by = 0.01)) %>%
                      mutate(y = dbeta(x, parameters[1], parameters[2])),
@@ -55,21 +57,57 @@ data %>%
 ```
 
 ```{r}
+data <- data %>%
+  mutate(alpha = H + parameters[1],
+         beta = AB - H + parameters[2],
+         posterior_mean = alpha / (alpha + beta))
+         
 data %>%
-  mutate(posterior = (H + parameters[1]) / (AB + sum(parameters))) %>%
-  arrange(desc(posterior)) %>%
+  arrange(desc(posterior_mean)) %>%
   head(10)
 ```
 
-## Confidence intervals
+## Confidence and credible intervals
+
+```{r}
+data <- data %>%
+  nest(H, AB) %>%
+  mutate(test = map(data, ~ prop.test(.$H, .$AB, conf.level = 0.95)),
+         confidence_lower = map_dbl(test, ~ .$conf.int[1]),
+         confidence_upper = map_dbl(test, ~ .$conf.int[2])) %>%
+  unnest(data) %>%
+  select(-test)
+```
+
+```{r}
+data <- data %>%
+  mutate(center = pbeta(posterior_mean, alpha, beta),
+         lower0 = center - 0.95 / 2,
+         upper0 = center + 0.95 / 2,
+         credulity_lower = pmax(0, lower0) - pmax(1, upper0) + 1,
+         credulity_upper = pmin(1, upper0) - pmin(0, lower0),
+         credulity_lower = qbeta(credulity_lower, alpha, beta),
+         credulity_upper = qbeta(credulity_upper, alpha, beta)) %>%
+  select(-center, -lower0, -upper0)
+```
 
 ```{r}
 data %>%
-  filter(AB > 500) %>%
-  nest(H, AB) %>%
-  mutate(test = map(data, ~ prop.test(.$H, .$AB, conf.level = 0.95)),
-         lower = map_dbl(test, ~ .$conf.int[1]),
-         upper = map_dbl(test, ~ .$conf.int[2])) %>%
-  unnest(data) %>%
-  select(name, H, AB, lower, estimate, upper)
+  sample_n(100) %>%
+  arrange(posterior_mean) %>%
+  mutate(battor = 1:n(),
+         confidence = pmap(list(confidence_lower, mean, confidence_upper), c),
+         credulity = pmap(list(credulity_lower, posterior_mean, credulity_upper), c)) %>%
+  select(battor, confidence, credulity) %>%
+  gather(type, interval, confidence, credulity) %>%
+  mutate(lower = map_dbl(interval, ~ .x[1]),
+         center = map_dbl(interval, ~ .x[2]),
+         upper = map_dbl(interval, ~ .x[3])) %>%
+  select(-interval) %>%
+  ggplot(aes(battor, center, color = type)) +
+  geom_errorbar(aes(ymin = lower, ymax = upper),
+                alpha = 0.5) +
+  geom_point() +
+  coord_cartesian(ylim = c(0, 1)) +
+  theme(legend.position = 'bottom')
 ```
