@@ -81,14 +81,8 @@ data <- data %>%
 
 ```{r}
 data <- data %>%
-  mutate(center = pbeta(posterior_mean, alpha, beta),
-         lower0 = center - 0.95 / 2,
-         upper0 = center + 0.95 / 2,
-         credulity_lower = pmax(0, lower0) - pmax(1, upper0) + 1,
-         credulity_upper = pmin(1, upper0) - pmin(0, lower0),
-         credulity_lower = qbeta(credulity_lower, alpha, beta),
-         credulity_upper = qbeta(credulity_upper, alpha, beta)) %>%
-  select(-center, -lower0, -upper0)
+  mutate(credulity_lower = qbeta(0.025, alpha, beta),
+         credulity_upper = qbeta(0.975, alpha, beta))
 ```
 
 ```{r}
