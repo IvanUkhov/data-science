@@ -87,8 +87,8 @@ data <- data %>%
 
 ```{r}
 data %>%
-  sample_n(100) %>%
-  arrange(posterior_mean) %>%
+  sample_n(50) %>%
+  arrange(AB) %>%
   mutate(battor = 1:n(),
          confidence = pmap(list(confidence_lower, mean, confidence_upper), c),
          credulity = pmap(list(credulity_lower, posterior_mean, credulity_upper), c)) %>%
