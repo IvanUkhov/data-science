@@ -103,7 +103,6 @@ data %>%
   mutate(lower = map_dbl(interval, ~ .x[1]),
          center = map_dbl(interval, ~ .x[2]),
          upper = map_dbl(interval, ~ .x[3])) %>%
-  select(-interval) %>%
   ggplot(aes(battor, center, color = type)) +
   geom_errorbar(aes(ymin = lower, ymax = upper),
                 alpha = 0.5) +
