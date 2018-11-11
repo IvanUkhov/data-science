@@ -21,7 +21,7 @@ data <- Batting %>%
   select(name, H, AB)
 ```
 
-## Who are the best battors?
+## Point estimation
 
 ```{r}
 data <- data %>%
@@ -31,8 +31,6 @@ data %>%
   arrange(desc(mean)) %>%
   head(10)
 ```
-
-## Who are the best battors, really?
 
 ```{r}
 parameters <- data %>%
@@ -67,7 +65,7 @@ data %>%
   head(10)
 ```
 
-## Confidence and credible intervals
+## Set estimation
 
 ```{r}
 data <- data %>%
