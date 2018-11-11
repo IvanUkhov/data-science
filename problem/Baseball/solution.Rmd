@@ -81,8 +81,8 @@ data <- data %>%
 
 ```{r}
 data <- data %>%
-  mutate(credulity_lower = qbeta(0.025, alpha, beta),
-         credulity_upper = qbeta(0.975, alpha, beta))
+  mutate(credibility_lower = qbeta(0.025, alpha, beta),
+         credibility_upper = qbeta(0.975, alpha, beta))
 ```
 
 ```{r}
@@ -91,9 +91,9 @@ data %>%
   arrange(AB) %>%
   mutate(battor = 1:n(),
          confidence = pmap(list(confidence_lower, mean, confidence_upper), c),
-         credulity = pmap(list(credulity_lower, posterior_mean, credulity_upper), c)) %>%
-  select(battor, confidence, credulity) %>%
-  gather(type, interval, confidence, credulity) %>%
+         credibility = pmap(list(credibility_lower, posterior_mean, credibility_upper), c)) %>%
+  select(battor, confidence, credibility) %>%
+  gather(type, interval, confidence, credibility) %>%
   mutate(lower = map_dbl(interval, ~ .x[1]),
          center = map_dbl(interval, ~ .x[2]),
          upper = map_dbl(interval, ~ .x[3])) %>%
