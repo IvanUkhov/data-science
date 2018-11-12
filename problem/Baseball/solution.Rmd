@@ -118,3 +118,12 @@ data %>%
   arrange(posterior_tail) %>%
   select(name, credibility_lower, posterior_mean, credibility_upper, posterior_tail)
 ```
+
+```{r}
+data %>%
+  ggplot(aes(posterior_mean, posterior_tail, color = AB)) +
+  geom_point() +
+  geom_hline(yintercept = 0.5, color = 'gray30', linetype = 'dashed') +
+  geom_hline(yintercept = 1 - level, color = 'gray30', linetype = 'dashed') +
+  geom_vline(xintercept = 0.3, color = 'gray30', linetype = 'dashed')
+```
