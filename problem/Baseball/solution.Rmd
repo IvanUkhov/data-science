@@ -9,6 +9,8 @@ library(tidyverse)
 ```
 
 ```{r}
+level = 0.95
+
 data <- Batting %>%
   filter(AB > 0) %>%
   anti_join(Pitching, by = 'playerID') %>%
@@ -70,7 +72,7 @@ data %>%
 ```{r}
 data <- data %>%
   nest(H, AB) %>%
-  mutate(test = map(data, ~ binom.test(.$H, .$AB, conf.level = 0.95)),
+  mutate(test = map(data, ~ binom.test(.$H, .$AB, conf.level = level)),
          confidence_lower = map_dbl(test, ~ .$conf.int[1]),
          confidence_upper = map_dbl(test, ~ .$conf.int[2])) %>%
   unnest(data) %>%
@@ -79,8 +81,8 @@ data <- data %>%
 
 ```{r}
 data <- data %>%
-  mutate(credibility_lower = qbeta(0.025, alpha, beta),
-         credibility_upper = qbeta(0.975, alpha, beta))
+  mutate(credibility_lower = qbeta((1 - level) / 2, alpha, beta),
+         credibility_upper = qbeta((1 + level) / 2, alpha, beta))
 ```
 
 ```{r}
@@ -106,8 +108,13 @@ data %>%
 ## Hypothesis testing
 
 ```{r}
+data <- data %>%
+  mutate(posterior_tail = pbeta(0.3, alpha, beta))
+```
+
+```{r}
 data %>%
-  select(name, credibility_lower, posterior_mean, credibility_upper) %>%
-  filter(credibility_lower > 0.3) %>%
-  arrange(posterior_mean)
+  filter(posterior_tail < 1 - level) %>%
+  arrange(posterior_tail) %>%
+  select(name, credibility_lower, posterior_mean, credibility_upper, posterior_tail)
 ```
