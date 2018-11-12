@@ -102,3 +102,12 @@ data %>%
   coord_cartesian(ylim = c(0, 1)) +
   theme(legend.position = 'bottom')
 ```
+
+## Hypothesis testing
+
+```{r}
+data %>%
+  select(name, credibility_lower, posterior_mean, credibility_upper) %>%
+  filter(credibility_lower > 0.3) %>%
+  arrange(posterior_mean)
+```
