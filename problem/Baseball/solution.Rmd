@@ -127,3 +127,13 @@ data %>%
   geom_hline(yintercept = 1 - level, color = 'gray30', linetype = 'dashed') +
   geom_vline(xintercept = 0.3, color = 'gray30', linetype = 'dashed')
 ```
+
+## False discovery rate control
+
+```{r}
+data %>%
+  arrange(posterior_tail) %>%
+  head(100) %>%
+  .$posterior_tail %>%
+  sum()
+```
