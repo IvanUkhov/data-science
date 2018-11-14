@@ -3,6 +3,10 @@ title: 'Baseball'
 output: html_document
 ---
 
+```{r, include = FALSE}
+install.packages(readr::read_lines('requirements.txt'))
+```
+
 ```{r, message = FALSE}
 library(Lahman)
 library(tidyverse)
@@ -137,3 +141,12 @@ data %>%
   .$posterior_tail %>%
   sum()
 ```
+
+```{r}
+data %>%
+  arrange(posterior_tail) %>%
+  mutate(posterior_tail_cum = cumsum(posterior_tail)) %>%
+  filter(posterior_tail_cum < 1 - level) %>%
+  select(name, posterior_mean, posterior_tail, posterior_tail_cum)
+```
+
