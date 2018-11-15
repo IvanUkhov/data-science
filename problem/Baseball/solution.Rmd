@@ -113,19 +113,19 @@ data %>%
 
 ```{r}
 data <- data %>%
-  mutate(posterior_tail = pbeta(0.3, alpha, beta))
+  mutate(posterior_error = pbeta(0.3, alpha, beta))
 ```
 
 ```{r}
 data %>%
-  filter(posterior_tail < 1 - level) %>%
-  arrange(posterior_tail) %>%
-  select(name, credibility_lower, posterior_mean, credibility_upper, posterior_tail)
+  filter(posterior_error < 1 - level) %>%
+  arrange(posterior_error) %>%
+  select(name, credibility_lower, posterior_mean, credibility_upper, posterior_error)
 ```
 
 ```{r}
 data %>%
-  ggplot(aes(posterior_mean, posterior_tail, color = AB)) +
+  ggplot(aes(posterior_mean, posterior_error, color = AB)) +
   geom_point() +
   geom_hline(yintercept = 0.5, color = 'gray30', linetype = 'dashed') +
   geom_hline(yintercept = 1 - level, color = 'gray30', linetype = 'dashed') +
@@ -136,17 +136,18 @@ data %>%
 
 ```{r}
 data %>%
-  arrange(posterior_tail) %>%
+  arrange(posterior_error) %>%
   head(100) %>%
-  .$posterior_tail %>%
+  .$posterior_error %>%
   sum()
 ```
 
 ```{r}
 data %>%
-  arrange(posterior_tail) %>%
-  mutate(posterior_tail_cum = cumsum(posterior_tail)) %>%
-  filter(posterior_tail_cum < 1 - level) %>%
-  select(name, posterior_mean, posterior_tail, posterior_tail_cum)
+  arrange(posterior_error) %>%
+  mutate(posterior_error_cum = cumsum(posterior_error)) %>%
+  filter(posterior_error < 1 - level) %>%
+  arrange(desc(posterior_error)) %>%
+  select(name, posterior_mean, posterior_error, posterior_error_cum)
 ```
 
