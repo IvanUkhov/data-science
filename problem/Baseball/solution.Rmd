@@ -135,8 +135,12 @@ data %>%
 ## False discovery rate control
 
 ```{r}
+data <- data %>%
+  arrange(posterior_error)
+```
+
+```{r}
 data %>%
-  arrange(posterior_error) %>%
   head(100) %>%
   .$posterior_error %>%
   sum()
@@ -144,10 +148,25 @@ data %>%
 
 ```{r}
 data %>%
-  arrange(posterior_error) %>%
-  mutate(posterior_error_cum = cumsum(posterior_error)) %>%
-  filter(posterior_error < 1 - level) %>%
-  arrange(desc(posterior_error)) %>%
-  select(name, posterior_mean, posterior_error, posterior_error_cum)
+  head(100) %>%
+  .$posterior_error %>%
+  mean()
+```
+
+```{r}
+data <- data %>%
+  mutate(q = cummean(posterior_error))
+
+data %>%
+  filter(q < 1 - level) %>%
+  select(name, posterior_mean, posterior_error, q)
+```
+
+```{r}
+data %>%
+  filter(q < 0.25) %>%
+  mutate(players = 1:n()) %>%
+  ggplot(aes(q, players)) +
+  geom_line()
 ```
 
