@@ -244,14 +244,46 @@ compute_credibility_hat <- function(a, b, c, d) {
   v2 <- c * d / ((c + d) ^ 2 * (c + d + 1))
   m_delta <- m2 - m1
   s_delta <- sqrt(v1 + v2)
-  list(posterior = pnorm(0, m_delta, s_delta),
-       estimate = m_delta,
-       lower = qnorm(.025, m_delta, s_delta),
-       upper = qnorm(.975, m_delta, s_delta))
+  tibble(posterior = pnorm(0, m_delta, s_delta),
+         estimate = m_delta,
+         lower = qnorm(.025, m_delta, s_delta),
+         upper = qnorm(.975, m_delta, s_delta))
 }
 ```
 
 ```{r}
 do.call(compute_credibility_hat, parameters)
+```
+
+```{r}
+name <- 'Mike Piazza'
+names <- c('Hank Aaron')
+names <- data %>%
+  filter(name != !!name & !name %in% names) %>%
+  sample_n(20) %>%
+  distinct() %>%
+  .$name %>%
+  c(names, .)
+
+battor <- data %>%
+  filter(name == !!name)
+
+data %>%
+  filter(name %in% names) %>%
+  select(name, alpha, beta) %>%
+  nest(alpha, beta) %>%
+  mutate(model = map(data, ~ compute_credibility_hat(battor$alpha,
+                                                     battor$beta,
+                                                     .$alpha,
+                                                     .$beta))) %>%
+  select(-data) %>%
+  unnest(model) %>%
+  mutate(name = fct_reorder(name, estimate)) %>%
+  ggplot(aes(name, estimate)) +
+  geom_point() +
+  geom_errorbar(aes(ymin = lower, ymax = upper)) +
+  geom_hline(yintercept = 0) +
+  coord_flip() +
+  theme(axis.title.y = element_blank())
 ```
 
