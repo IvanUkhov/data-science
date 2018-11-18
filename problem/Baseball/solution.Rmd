@@ -246,8 +246,8 @@ compute_credibility_hat <- function(a, b, c, d) {
   s_delta <- sqrt(v1 + v2)
   tibble(posterior = pnorm(0, m_delta, s_delta),
          estimate = m_delta,
-         lower = qnorm(.025, m_delta, s_delta),
-         upper = qnorm(.975, m_delta, s_delta))
+         lower = qnorm((1 - level) / 2, m_delta, s_delta),
+         upper = qnorm((1 + level) / 2, m_delta, s_delta))
 }
 ```
 
