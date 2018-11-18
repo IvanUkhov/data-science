@@ -165,8 +165,35 @@ data %>%
 ```{r}
 data %>%
   filter(q < 0.25) %>%
-  mutate(players = 1:n()) %>%
-  ggplot(aes(q, players)) +
-  geom_line()
+  mutate(battors = 1:n()) %>%
+  ggplot(aes(q, battors)) +
+  geom_line() +
+  labs(x = 'Q-value', y = 'Number of battors')
+```
+
+## A/B testing
+
+```{r}
+candidates <- data %>%
+  filter(name %in% c('Hank Aaron', 'Mike Piazza'))
+
+candidates
+```
+
+```{r}
+compute <- function(player) {
+  return(tibble(x = seq(0.28, 0.33, by = 0.001)) %>%
+           mutate(y = dbeta(x, player$alpha, player$beta)))
+}
+
+candidates %>%
+  select(name, alpha, beta) %>%
+  nest(alpha, beta) %>%
+  mutate(model = map(data, compute)) %>%
+  select(-data) %>%
+  unnest() %>%
+  ggplot(aes(x, y, color = name)) +
+  geom_line() +
+  labs(x = 'Batting average', y = 'Posterior density')
 ```
 
