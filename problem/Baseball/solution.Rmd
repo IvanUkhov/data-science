@@ -10,6 +10,8 @@ install.packages(readr::read_lines('requirements.txt'))
 ```{r, message = FALSE}
 library(Lahman)
 library(tidyverse)
+
+theme_set(theme_light())
 ```
 
 ```{r}
@@ -181,19 +183,75 @@ candidates
 ```
 
 ```{r}
-compute <- function(player) {
-  return(tibble(x = seq(0.28, 0.33, by = 0.001)) %>%
-           mutate(y = dbeta(x, player$alpha, player$beta)))
+compute_beta <- function(player) {
+  tibble(x = seq(0.28, 0.33, by = 0.001)) %>%
+         mutate(y = dbeta(x, player$alpha, player$beta))
 }
 
 candidates %>%
   select(name, alpha, beta) %>%
   nest(alpha, beta) %>%
-  mutate(model = map(data, compute)) %>%
+  mutate(model = map(data, compute_beta)) %>%
   select(-data) %>%
   unnest() %>%
   ggplot(aes(x, y, color = name)) +
   geom_line() +
   labs(x = 'Batting average', y = 'Posterior density')
+```
+
+```{r}
+compute_superiority <- function(a, b, c, d) {
+  j <- seq.int(0, round(c) - 1)
+  values <- lbeta(a + j, b + d) - log(d + j) - lbeta(1 + j, d) - lbeta(a, b)
+  1 - sum(exp(values))
+}
+
+compute_superiority_hat <- function(a, b, c, d) {
+  m1 <- a / (a + b)
+  m2 <- c / (c + d)
+  v1 <- (a * b) / ((a + b) ^ 2 * (a + b + 1))
+  v2 <- (c * d) / ((c + d) ^ 2 * (c + d + 1))
+  pnorm(0, m2 - m1, sqrt(v1 + v2))
+}
+```
+
+```{r}
+parameters <- list(a = candidates[['alpha']][1],
+                   b = candidates[['beta']][1],
+                   c = candidates[['alpha']][2],
+                   d = candidates[['beta']][2])
+
+do.call(compute_superiority, parameters)
+```
+
+```{r}
+do.call(compute_superiority_hat, parameters)
+```
+
+### Confidence interval
+
+```{r}
+prop.test(candidates$H, candidates$AB)
+```
+
+### Credible interval
+
+```{r}
+compute_credibility_hat <- function(a, b, c, d) {
+  m1 <- a / (a + b)
+  m2 <- c / (c + d)
+  v1 <- a * b / ((a + b) ^ 2 * (a + b + 1))
+  v2 <- c * d / ((c + d) ^ 2 * (c + d + 1))
+  m_delta <- m2 - m1
+  s_delta <- sqrt(v1 + v2)
+  list(posterior = pnorm(0, m_delta, s_delta),
+       estimate = m_delta,
+       lower = qnorm(.025, m_delta, s_delta),
+       upper = qnorm(.975, m_delta, s_delta))
+}
+```
+
+```{r}
+do.call(compute_credibility_hat, parameters)
 ```
 
