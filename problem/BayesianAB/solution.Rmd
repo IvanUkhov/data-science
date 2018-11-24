@@ -48,7 +48,7 @@ data_null <- data_frame(replicate = seq_len(replication_num)) %>%
   mutate(p.value = vectorized_prop_test(sA, nA - sA, sB, nB - sB)$p.value)
 ```
 
-### Stopping at the end
+### Waiting
 
 ```{r}
 data_null %>%
@@ -63,45 +63,46 @@ data <- data_null %>%
   mutate(pass_end = last(p.value) < alpha) %>%
   mutate(pass_anywhere = min(p.value) < alpha)
 
-data_end <- data %>%
+data_wait <- data %>%
   filter(day == day_num, p.value < alpha)
 
-data_end %>% nrow()
+data_wait %>% nrow()
 ```
 
 ```{r}
 data %>%
   plot(line = alpha) +
-  geom_point(data = data_end, color = 'red') +
+  geom_point(data = data_wait, color = 'red') +
   ylab('P-value')
 ```
 
-### Stopping anywhere
+### Peeking
 
 ```{r}
-data_anywhere <- data %>%
+data_peek <- data %>%
   filter(p.value < alpha) %>%
   slice(1)
 
-data_anywhere %>% nrow()
+data_peek %>% nrow()
 ```
 
 ```{r}
 data %>%
   filter(head(cumsum(c(1, p.value) < alpha), -1) == 0) %>%
   plot(color = 'pass_anywhere', line = alpha) +
-  geom_point(data = data_anywhere, color = 'red') +
+  geom_point(data = data_peek, color = 'red') +
   ylab('P-value')
 ```
 
 # Negative effect
 
 ```{r}
-threshold <- 0.00001
+effect <- 0.0001
+threshold <- 0.1 * effect
 
 data_negative <- data_frame(replicate = seq_len(replication_num)) %>%
   mutate(proportion_A = conversion_base,
-         effect = -0.0001,
+         effect = -effect,
          per_day = per_day_num) %>%
   crossing(prior_alpha = c(10,  100)) %>%
   mutate(prior_beta = ifelse(prior_alpha == 10, 90, 99900)) %>%
@@ -111,50 +112,85 @@ data <- data_negative %>%
   filter(replicate %in% sample(replication_num, 100)) %>%
   group_by(replicate, prior_alpha) %>%
   mutate(pass_end = last(expected_loss) < threshold,
-         pass_anywhere = min(expected_loss) < threshold)
-
-data_alpha <- data %>%
+         pass_anywhere = min(expected_loss) < threshold) %>%
   filter(prior_alpha == 10)
 ```
 
-### Stopping at the end
+### Waiting
 
 ```{r}
-data_end <- data_alpha %>%
+data_wait <- data %>%
   filter(day == day_num, expected_loss < threshold)
 
-data_end %>% nrow()
+data_wait %>% nrow()
 ```
 
 ```{r}
-data_alpha %>%
+data %>%
   plot(y_aestetic = 'expected_loss',
        line = threshold,
        labels = c('Not passed', 'Passed')) +
-  geom_point(data = data_end, color = 'red') +
+  geom_point(data = data_wait, color = 'red') +
   scale_y_log10() +
   ylab('Posterior expected loss')
 ```
 
-### Stopping anywhere
+### Peeking
 
 ```{r}
-data_anywhere <- data_alpha %>%
+data_peek <- data %>%
   filter(expected_loss < threshold) %>%
   slice(1)
 
-data_anywhere %>% nrow()
+data_peek %>% nrow()
 ```
 
 ```{r}
-data_alpha %>%
+data %>%
   filter(head(cumsum(c(1, expected_loss) < threshold), -1) == 0) %>%
   plot('pass_anywhere',
        y_aestetic = 'expected_loss',
        line = threshold,
        labels = c('Not passed', 'Passed')) +
-  geom_point(data = data_anywhere, color = 'red') +
+  geom_point(data = data_peek, color = 'red') +
   scale_y_log10() +
   ylab('Posterior expected loss')
 ```
 
+## Positive effect
+
+```{r}
+prior_alpha <- 100
+prior_beta <- 99900
+
+data_positive <- data_frame(replicate = seq_len(4 * replication_num)) %>%
+  mutate(proportion_A = rbeta(n(), prior_alpha, prior_beta),
+         proportion_B = rbeta(n(), prior_alpha, prior_beta),
+         effect = proportion_B - proportion_A,
+         per_day = per_day_num) %>%
+  perform_simulation(days = day_num,
+                     prior_alpha = prior_alpha,
+                     prior_beta = prior_beta)
+
+data <- data_positive %>%
+  arrange(replicate) %>%
+  group_by(replicate) %>%
+  slice(c(which.min(expected_loss), n())) %>%
+  mutate(rule = c('Peeking', 'Waiting'))
+```
+
+```{r, warning = FALSE}
+data %>%
+  mutate(loss = pmax(-effect, 0)) %>%
+  group_by(rule) %>%
+  arrange(expected_loss) %>%
+  mutate(cumulative_loss = cummean(loss)) %>%
+  ggplot(aes(expected_loss, cumulative_loss, color = rule)) +
+  geom_line() +
+  geom_abline(lty = 2) +
+  xlab('Expected loss') +
+  ylab('Cumulative loss') +
+  scale_x_log10(lim = c(1e-7, 1e-3)) +
+  scale_y_log10(lim = c(1e-7, 1e-3)) +
+  theme(legend.title = element_blank())
+```
