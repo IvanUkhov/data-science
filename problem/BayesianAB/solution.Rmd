@@ -14,10 +14,10 @@ theme_set(theme_light())
 plot <- function(data,
                  line = 0.05,
                  color = 'pass_end',
-                 y_aestetic = 'p.value',
+                 y_aestetic = 'p_value',
                  labels = c('Not significant', 'Significant')) {
   data %>%
-    ggplot(aes_string('day', y_aestetic, group = 'replicate')) +
+    ggplot(aes_string('day', y_aestetic, group = 'replication')) +
     geom_line(aes_string(alpha = color, color = color)) +
     geom_hline(color = 'red', yintercept = line, lty = 2) +
     scale_color_manual(values = c('black', 'red'), labels = labels) +
@@ -38,14 +38,18 @@ conversion_base <- 0.001
 # No effect
 
 ```{r}
-set.seed(2015 - 08 - 07)
+set.seed(2018 - 12 - 01)
 
-data_null <- data_frame(replicate = seq_len(replication_num)) %>%
-  mutate(proportion_A = conversion_base,
-         effect = 0,
-         per_day = per_day_num) %>%
-  perform_simulation(days = day_num, approx = TRUE) %>%
-  mutate(p.value = vectorized_prop_test(sA, nA - sA, sB, nB - sB)$p.value)
+data_null <- data_frame(replication = seq_len(replication_num)) %>%
+  simulate(day_num = day_num,
+           per_day_num = per_day_num,
+           a_rate = conversion_base,
+           b_size = 0,
+           approximate = TRUE) %>%
+  mutate(p_value = vectorized_prop_test(a_success_num,
+                                        a_total_num - a_success_num,
+                                        b_success_num,
+                                        b_total_num - b_success_num)$p.value)
 ```
 
 ### Waiting
@@ -53,18 +57,18 @@ data_null <- data_frame(replicate = seq_len(replication_num)) %>%
 ```{r}
 data_null %>%
   filter(day == day_num) %>%
-  { mean(.$p.value < alpha) }
+  { mean(.$p_value < alpha) }
 ```
 
 ```{r}
 data <- data_null %>%
-  filter(replicate %in% sample(replication_num, 100)) %>%
-  group_by(replicate) %>%
-  mutate(pass_end = last(p.value) < alpha) %>%
-  mutate(pass_anywhere = min(p.value) < alpha)
+  filter(replication %in% sample(replication_num, 100)) %>%
+  group_by(replication) %>%
+  mutate(pass_end = last(p_value) < alpha) %>%
+  mutate(pass_anywhere = min(p_value) < alpha)
 
 data_wait <- data %>%
-  filter(day == day_num, p.value < alpha)
+  filter(day == day_num, p_value < alpha)
 
 data_wait %>% nrow()
 ```
@@ -80,7 +84,7 @@ data %>%
 
 ```{r}
 data_peek <- data %>%
-  filter(p.value < alpha) %>%
+  filter(p_value < alpha) %>%
   slice(1)
 
 data_peek %>% nrow()
@@ -88,7 +92,7 @@ data_peek %>% nrow()
 
 ```{r}
 data %>%
-  filter(head(cumsum(c(1, p.value) < alpha), -1) == 0) %>%
+  filter(head(cumsum(c(1, p_value) < alpha), -1) == 0) %>%
   plot(color = 'pass_anywhere', line = alpha) +
   geom_point(data = data_peek, color = 'red') +
   ylab('P-value')
@@ -97,30 +101,32 @@ data %>%
 # Negative effect
 
 ```{r}
-effect <- 0.0001
-threshold <- 0.1 * effect
+effect_size <- 0.0001
+care_threshold <- 0.1 * effect_size
 
-data_negative <- data_frame(replicate = seq_len(replication_num)) %>%
-  mutate(proportion_A = conversion_base,
-         effect = -effect,
-         per_day = per_day_num) %>%
-  crossing(prior_alpha = c(10,  100)) %>%
-  mutate(prior_beta = ifelse(prior_alpha == 10, 90, 99900)) %>%
-  perform_simulation(days = day_num, approx = TRUE)
+data_negative <- data_frame(replication = seq_len(replication_num)) %>%
+  simulate(day_num = day_num,
+           per_day_num = per_day_num,
+           a_rate = conversion_base,
+           b_size = -effect_size,
+           a_alpha = 10,
+           b_alpha = 10,
+           a_beta = 90,
+           b_beta = 90,
+           approximate = TRUE)
 
 data <- data_negative %>%
-  filter(replicate %in% sample(replication_num, 100)) %>%
-  group_by(replicate, prior_alpha) %>%
-  mutate(pass_end = last(expected_loss) < threshold,
-         pass_anywhere = min(expected_loss) < threshold) %>%
-  filter(prior_alpha == 10)
+  filter(replication %in% sample(replication_num, 100)) %>%
+  group_by(replication, a_alpha) %>%
+  mutate(pass_end = last(expected_loss) < care_threshold,
+         pass_anywhere = min(expected_loss) < care_threshold)
 ```
 
 ### Waiting
 
 ```{r}
 data_wait <- data %>%
-  filter(day == day_num, expected_loss < threshold)
+  filter(day == day_num, expected_loss < care_threshold)
 
 data_wait %>% nrow()
 ```
@@ -128,7 +134,7 @@ data_wait %>% nrow()
 ```{r}
 data %>%
   plot(y_aestetic = 'expected_loss',
-       line = threshold,
+       line = care_threshold,
        labels = c('Not passed', 'Passed')) +
   geom_point(data = data_wait, color = 'red') +
   scale_y_log10() +
@@ -139,7 +145,7 @@ data %>%
 
 ```{r}
 data_peek <- data %>%
-  filter(expected_loss < threshold) %>%
+  filter(expected_loss < care_threshold) %>%
   slice(1)
 
 data_peek %>% nrow()
@@ -147,10 +153,10 @@ data_peek %>% nrow()
 
 ```{r}
 data %>%
-  filter(head(cumsum(c(1, expected_loss) < threshold), -1) == 0) %>%
+  filter(head(cumsum(c(1, expected_loss) < care_threshold), -1) == 0) %>%
   plot('pass_anywhere',
        y_aestetic = 'expected_loss',
-       line = threshold,
+       line = care_threshold,
        labels = c('Not passed', 'Passed')) +
   geom_point(data = data_peek, color = 'red') +
   scale_y_log10() +
@@ -160,28 +166,27 @@ data %>%
 ## Positive effect
 
 ```{r}
-prior_alpha <- 100
-prior_beta <- 99900
-
-data_positive <- data_frame(replicate = seq_len(4 * replication_num)) %>%
-  mutate(proportion_A = rbeta(n(), prior_alpha, prior_beta),
-         proportion_B = rbeta(n(), prior_alpha, prior_beta),
-         effect = proportion_B - proportion_A,
-         per_day = per_day_num) %>%
-  perform_simulation(days = day_num,
-                     prior_alpha = prior_alpha,
-                     prior_beta = prior_beta)
+data_positive <- data_frame(replication = seq_len(4 * replication_num)) %>%
+  mutate(a_rate = rbeta(n(), 100, 99900),
+         b_rate = rbeta(n(), 100, 99900),
+         b_size = b_rate - a_rate) %>%
+  simulate(day_num = day_num,
+           per_day_num = per_day_num,
+           a_alpha = 100,
+           b_alpha = 100,
+           a_beta = 99900,
+           b_beta = 99900)
 
 data <- data_positive %>%
-  arrange(replicate) %>%
-  group_by(replicate) %>%
+  arrange(replication) %>%
+  group_by(replication) %>%
   slice(c(which.min(expected_loss), n())) %>%
   mutate(rule = c('Peeking', 'Waiting'))
 ```
 
 ```{r, warning = FALSE}
 data %>%
-  mutate(loss = pmax(-effect, 0)) %>%
+  mutate(loss = pmax(-b_size, 0)) %>%
   group_by(rule) %>%
   arrange(expected_loss) %>%
   mutate(cumulative_loss = cummean(loss)) %>%

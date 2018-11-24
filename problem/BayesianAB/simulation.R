@@ -1,71 +1,70 @@
-conversion_expected_loss <- function(sA, nA,
-                                     sB, nB,
-                                     prior_alpha = 1, prior_beta = 1,
-                                     approx = FALSE, ...) {
-  if (!approx[1] & length(sA) > 1) {
-    a <- sA + prior_alpha
-    b <- nA - sA + prior_beta
-    c <- sB + prior_alpha
-    d <- nB - sB + prior_beta
-    ret <- sapply(seq_along(a), function(i) {
-      expected_loss(a[i], b[i], c[i], d[i], ...)
-    })
-    return(ret)
-  }
-  expected_loss(sA + prior_alpha, nA - sA + prior_beta,
-                sB + prior_alpha, nB - sB + prior_beta,
-                approx = approx, ...)
+simulate <- function(data, day_num, ...) {
+  data %>%
+    cbind(...) %>%
+    crossing(day = seq_len(day_num)) %>%
+    crossing(group = c('a', 'b')) %>%
+    mutate(group = factor(group),
+           total_num = rbinom(n(), per_day_num, 0.5),
+           success_num = rbinom(n(), total_num, a_rate + b_size * (group == 'b'))) %>%
+    group_by_at(vars(-day, -total_num, -success_num)) %>%
+    arrange(day) %>%
+    mutate(total_num = cumsum(total_num),
+           success_num = cumsum(success_num)) %>%
+    ungroup() %>%
+    tidyr::gather(key, value, total_num, success_num) %>%
+    tidyr::unite(key, group, key, sep = '_') %>%
+    tidyr::spread(key, value) %>%
+    mutate(expected_loss = do.call(conversion_expected_loss, .))
 }
 
-expected_loss <- function(a, b, c, d, approx = FALSE, ...) {
-  v1 <- lbeta(a + 1, b) - lbeta(a, b) + h(a + 1, b, c, d, approx = approx, log_h = TRUE)
-  v2 <- lbeta(c + 1, d) - lbeta(c, d) + h(a, b, c + 1, d, approx = approx, log_h = TRUE)
+conversion_expected_loss <- function(a_total_num,
+                                     b_total_num,
+                                     a_success_num,
+                                     b_success_num,
+                                     a_alpha = 1,
+                                     b_alpha = 1,
+                                     a_beta = 1,
+                                     b_beta = 1,
+                                     approximate = FALSE, ...) {
+  a_alpha <- a_success_num + a_alpha
+  b_alpha <- b_success_num + b_alpha
+  a_beta <- a_total_num - a_success_num + a_beta
+  b_beta <- b_total_num - b_success_num + b_beta
+  if (!approximate[1] & length(a_success_num) > 1) {
+    sapply(seq_along(a_alpha), function(i) {
+      expected_loss(a_alpha[i], a_beta[i], b_alpha[i], b_beta[i])
+    })
+  } else {
+    expected_loss(a_alpha, a_beta, b_alpha, b_beta, approximate = approximate)
+  }
+}
+
+expected_loss <- function(a, b, c, d, approximate = FALSE) {
+  v1 <- lbeta(a + 1, b) - lbeta(a, b) + h(a + 1, b, c, d,
+                                          approximate = approximate,
+                                          logarithmic = TRUE)
+  v2 <- lbeta(c + 1, d) - lbeta(c, d) + h(a, b, c + 1, d,
+                                          approximate = approximate,
+                                          logarithmic = TRUE)
   exp(v1) - exp(v2)
 }
 
-h <- function(a, b, c, d, approx = FALSE, log_h = FALSE) {
-  if (approx[1]) {
+h <- function(a, b, c, d, approximate = FALSE, logarithmic = FALSE) {
+  if (approximate[1]) {
     u1 <- a / (a + b)
     u2 <- c / (c + d)
-    var1 <- a * b / ((a + b) ^ 2 * (a + b + 1))
-    var2 <- c * d / ((c + d) ^ 2 * (c + d + 1))
-    return(pnorm(0, u2 - u1, sqrt(var1 + var2), log.p = log_h))
+    v1 <- a * b / ((a + b) ^ 2 * (a + b + 1))
+    v2 <- c * d / ((c + d) ^ 2 * (c + d + 1))
+    pnorm(0, u2 - u1, sqrt(v1 + v2), log.p = logarithmic)
+  } else {
+    j <- seq(0, c - 1)
+    series <- lbeta(a + j, b + d) - log(d + j) - lbeta(1 + j, d) - lbeta(a, b)
+    result <- max(1 - sum(exp(series)), 0)
+    if (logarithmic) {
+      result <- log(result)
+    }
+    result
   }
-  j <- seq(0, c - 1)
-  log_vals <- lbeta(a + j, b + d) - log(d + j) - lbeta(1 + j, d) - lbeta(a, b)
-  ret <- max(1 - sum(exp(log_vals)), 0)
-  if (log_h) {
-    return(log(ret))
-  }
-  ret
-}
-
-perform_simulation <- function(params, days = 20, per_day = 100,
-                               proportion_A = .1, ...) {
-  if (is.null(params$per_day)) {
-    params$per_day <- per_day
-  }
-  if (is.null(params$proportion_A)) {
-    params$proportion_A <- proportion_A
-  }
-  params <- cbind(params, ...)
-  ret <- params %>%
-    crossing(day = seq_len(days)) %>%
-    crossing(type = c('A', 'B')) %>%
-    mutate(type = factor(type)) %>%
-    ungroup() %>%
-    mutate(total = rbinom(n(), .$per_day, .5)) %>%
-    mutate(success = rbinom(n(), total, .$proportion_A + effect * (type == 'B'))) %>%
-    group_by(effect, replicate, type, per_day) %>%
-    mutate(n = cumsum(total),
-           s = cumsum(success)) %>%
-    ungroup()
-  ret %>%
-    select(-success, -total) %>%
-    tidyr::gather(metric, value, n:s) %>%
-    tidyr::unite(metric2, metric, type, sep = '') %>%
-    tidyr::spread(metric2, value) %>%
-    mutate(expected_loss = do.call(conversion_expected_loss, .))
 }
 
 vectorized_prop_test <- function(x1, n1, x2, n2, conf.level = .95) {
