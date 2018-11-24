@@ -41,7 +41,7 @@ data_null <- data_frame(replicate = seq_len(replication_num)) %>%
   mutate(p.value = vectorized_prop_test(sA, nA - sA, sB, nB - sB)$p.value)
 ```
 
-## Significant P-values on the last day
+## P-values significant on the last day
 
 ```{r}
 data_null %>%
@@ -56,15 +56,34 @@ data <- data_null %>%
   mutate(pass_end = last(p.value) < alpha) %>%
   mutate(pass_anywhere = min(p.value) < alpha)
 
-data_last <- data %>%
+data_end <- data %>%
   filter(day == day_num, p.value < alpha)
 
-data_last %>% nrow()
+data_end %>% nrow()
 ```
 
 ```{r}
 data %>%
   plot(line = alpha) +
-  geom_point(data = data_last, color = 'red') +
+  geom_point(data = data_end, color = 'red') +
   ylab('P-value')
 ```
+
+## P-values significant anywhere
+
+```{r}
+data_anywhere <- data %>%
+  filter(p.value < alpha) %>%
+  slice(1)
+
+data_anywhere %>% nrow()
+```
+
+```{r}
+data %>%
+  filter(head(cumsum(c(1, p.value) < alpha), -1) == 0) %>%
+  plot(color = 'pass_anywhere', line = alpha) +
+  geom_point(data = data_anywhere, color = 'red') +
+  ylab('P-value')
+```
+
