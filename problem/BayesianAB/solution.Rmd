@@ -1,0 +1,70 @@
+---
+title: 'Bayesian A/B testing'
+output: html_document
+---
+
+```{r, message = FALSE}
+library(tidyverse)
+
+source('simulation.R')
+```
+
+```{r}
+plot <- function(data,
+                 line = 0.05,
+                 color = 'pass_end',
+                 y_aestetic = 'p.value',
+                 labels = c('Not significant', 'Significant')) {
+  data %>%
+    ggplot(aes_string('day', y_aestetic, group = 'replicate')) +
+    geom_line(aes_string(alpha = color, color = color)) +
+    geom_hline(color = 'red', yintercept = line, lty = 2) +
+    scale_color_manual(values = c('black', 'red'), labels = labels) +
+    scale_alpha_manual(values = c(0.15, 1), labels = labels) +
+    labs(color = '', alpha = '') +
+    xlab('Day of experiment')
+}
+```
+
+```{r}
+set.seed(2015 - 08 - 07)
+
+alpha <- 0.05
+day_num = 20
+replication_num <- 5000
+
+data_null <- data_frame(replicate = seq_len(replication_num)) %>%
+  mutate(proportion_A = 0.001,
+         effect = 0,
+         per_day = 10000) %>%
+  perform_simulation(days = day_num, approx = TRUE) %>%
+  mutate(p.value = vectorized_prop_test(sA, nA - sA, sB, nB - sB)$p.value)
+```
+
+## Significant P-values on the last day
+
+```{r}
+data_null %>%
+  filter(day == day_num) %>%
+  { mean(.$p.value < alpha) }
+```
+
+```{r}
+data <- data_null %>%
+  filter(replicate %in% sample(replication_num, 100)) %>%
+  group_by(replicate) %>%
+  mutate(pass_end = last(p.value) < alpha) %>%
+  mutate(pass_anywhere = min(p.value) < alpha)
+
+data_last <- data %>%
+  filter(day == day_num, p.value < alpha)
+
+data_last %>% nrow()
+```
+
+```{r}
+data %>%
+  plot(line = alpha) +
+  geom_point(data = data_last, color = 'red') +
+  ylab('P-value')
+```
