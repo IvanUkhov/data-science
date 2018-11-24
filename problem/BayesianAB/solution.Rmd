@@ -7,6 +7,7 @@ output: html_document
 library(tidyverse)
 
 source('simulation.R')
+theme_set(theme_light())
 ```
 
 ```{r}
@@ -27,21 +28,27 @@ plot <- function(data,
 ```
 
 ```{r}
-set.seed(2015 - 08 - 07)
-
 alpha <- 0.05
 day_num = 20
-replication_num <- 5000
+per_day_num <- 10000
+replication_num <- 10000
+conversion_base <- 0.001
+```
+
+# No effect
+
+```{r}
+set.seed(2015 - 08 - 07)
 
 data_null <- data_frame(replicate = seq_len(replication_num)) %>%
-  mutate(proportion_A = 0.001,
+  mutate(proportion_A = conversion_base,
          effect = 0,
-         per_day = 10000) %>%
+         per_day = per_day_num) %>%
   perform_simulation(days = day_num, approx = TRUE) %>%
   mutate(p.value = vectorized_prop_test(sA, nA - sA, sB, nB - sB)$p.value)
 ```
 
-## P-values significant on the last day
+### Stopping at the end
 
 ```{r}
 data_null %>%
@@ -69,7 +76,7 @@ data %>%
   ylab('P-value')
 ```
 
-## P-values significant anywhere
+### Stopping anywhere
 
 ```{r}
 data_anywhere <- data %>%
@@ -85,5 +92,69 @@ data %>%
   plot(color = 'pass_anywhere', line = alpha) +
   geom_point(data = data_anywhere, color = 'red') +
   ylab('P-value')
+```
+
+# Negative effect
+
+```{r}
+threshold <- 0.00001
+
+data_negative <- data_frame(replicate = seq_len(replication_num)) %>%
+  mutate(proportion_A = conversion_base,
+         effect = -0.0001,
+         per_day = per_day_num) %>%
+  crossing(prior_alpha = c(10,  100)) %>%
+  mutate(prior_beta = ifelse(prior_alpha == 10, 90, 99900)) %>%
+  perform_simulation(days = day_num, approx = TRUE)
+
+data <- data_negative %>%
+  filter(replicate %in% sample(replication_num, 100)) %>%
+  group_by(replicate, prior_alpha) %>%
+  mutate(pass_end = last(expected_loss) < threshold,
+         pass_anywhere = min(expected_loss) < threshold)
+
+data_alpha <- data %>%
+  filter(prior_alpha == 10)
+```
+
+### Stopping at the end
+
+```{r}
+data_end <- data_alpha %>%
+  filter(day == day_num, expected_loss < threshold)
+
+data_end %>% nrow()
+```
+
+```{r}
+data_alpha %>%
+  plot(y_aestetic = 'expected_loss',
+       line = threshold,
+       labels = c('Not passed', 'Passed')) +
+  geom_point(data = data_end, color = 'red') +
+  scale_y_log10() +
+  ylab('Posterior expected loss')
+```
+
+### Stopping anywhere
+
+```{r}
+data_anywhere <- data_alpha %>%
+  filter(expected_loss < threshold) %>%
+  slice(1)
+
+data_anywhere %>% nrow()
+```
+
+```{r}
+data_alpha %>%
+  filter(head(cumsum(c(1, expected_loss) < threshold), -1) == 0) %>%
+  plot('pass_anywhere',
+       y_aestetic = 'expected_loss',
+       line = threshold,
+       labels = c('Not passed', 'Passed')) +
+  geom_point(data = data_anywhere, color = 'red') +
+  scale_y_log10() +
+  ylab('Posterior expected loss')
 ```
 
