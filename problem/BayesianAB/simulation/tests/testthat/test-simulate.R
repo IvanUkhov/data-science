@@ -1,8 +1,6 @@
-library(tidyverse)
+context('simulate')
 
-source('simulation.R')
-
-test_that('simulate works properly', {
+test_that('the expected loss is correct', {
   set.seed(0)
   data <- data_frame(replication = seq_len(10)) %>%
     simulate(day_num = 7,

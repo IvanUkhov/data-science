@@ -1,1 +1,0 @@
-testthat::test_file('test_simulation.R', reporter = 'summary')

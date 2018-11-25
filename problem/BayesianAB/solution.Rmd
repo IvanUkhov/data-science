@@ -4,9 +4,10 @@ output: html_document
 ---
 
 ```{r, message = FALSE}
+library(devtools)
 library(tidyverse)
+load_all('simulation')
 
-source('simulation.R')
 source('testing.R')
 theme_set(theme_light())
 ```

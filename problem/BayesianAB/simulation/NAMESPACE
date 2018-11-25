@@ -1,0 +1,3 @@
+export(simulate)
+import(dplyr)
+import(tidyr)
