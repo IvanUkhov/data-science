@@ -50,8 +50,8 @@ data_null %>%
 data <- data_null %>%
   filter(replication %in% sample(replication_num, 100)) %>%
   group_by(replication) %>%
-  mutate(pass_any = min(p_value) < significance_level,
-         pass_end = last(p_value) < significance_level)
+  mutate(passed_any = min(p_value) < significance_level,
+         passed_end = last(p_value) < significance_level)
 
 data_wait <- data %>%
   filter(day == day_num, p_value < significance_level)
@@ -61,8 +61,7 @@ data_wait %>% nrow()
 
 ```{r}
 data %>%
-  plot(line = significance_level) +
-  geom_point(data = data_wait, color = 'red') +
+  plot(y = 'p_value', color = 'passed_end', line = significance_level) +
   ylab('P-value')
 ```
 
@@ -79,8 +78,7 @@ data_peek %>% nrow()
 ```{r}
 data %>%
   filter(head(cumsum(c(1, p_value) < significance_level), -1) == 0) %>%
-  plot(color = 'pass_any', line = significance_level) +
-  geom_point(data = data_peek, color = 'red') +
+  plot(y = 'p_value', line = significance_level) +
   ylab('P-value')
 ```
 
@@ -103,9 +101,9 @@ data_negative <- tibble(replication = seq_len(replication_num)) %>%
 
 data <- data_negative %>%
   filter(replication %in% sample(replication_num, 100)) %>%
-  group_by(replication, a_alpha) %>%
-  mutate(pass_any = min(expected_loss) < care_threshold,
-         pass_end = last(expected_loss) < care_threshold)
+  group_by(replication, a_alpha_prior) %>%
+  mutate(passed_any = min(expected_loss) < care_threshold,
+         passed_end = last(expected_loss) < care_threshold)
 ```
 
 ### Waiting
@@ -119,8 +117,7 @@ data_wait %>% nrow()
 
 ```{r}
 data %>%
-  plot(y_aestetic = 'expected_loss', line = care_threshold) +
-  geom_point(data = data_wait, color = 'red') +
+  plot(line = care_threshold, color = 'passed_end') +
   scale_y_log10() +
   ylab('Posterior expected loss')
 ```
@@ -138,9 +135,7 @@ data_peek %>% nrow()
 ```{r}
 data %>%
   filter(head(cumsum(c(1, expected_loss) < care_threshold), -1) == 0) %>%
-  plot(color = 'pass_any',
-       y_aestetic = 'expected_loss',
-       line = care_threshold) +
+  plot(line = care_threshold) +
   geom_point(data = data_peek, color = 'red') +
   scale_y_log10() +
   ylab('Posterior expected loss')

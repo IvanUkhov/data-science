@@ -62,29 +62,22 @@ data <- tibble(replication = seq_len(replication_num)) %>%
            daily_num = daily_num,
            approximate = TRUE) %>%
   group_by(replication) %>%
-  mutate(pass_any = min(expected_loss) < care_threshold,
-         pass_end = last(expected_loss) < care_threshold) %>%
+  mutate(passed_any = min(expected_loss) < care_threshold,
+         passed_end = last(expected_loss) < care_threshold) %>%
   ungroup()
 
 data %>%
-  { mean(.$pass_any) }
+  { mean(.$passed_any) }
 ```
 
 ```{r, warning = FALSE}
-data_part <- data %>%
+data %>%
   filter(replication %in% sample(replication_num, 100)) %>%
   group_by(replication) %>%
-  mutate(pass_any = min(expected_loss) < care_threshold,
-         pass_end = last(expected_loss) < care_threshold)
-
-data_peek <- data_part %>%
-  filter(expected_loss < care_threshold) %>%
-  slice(1)
-
-data_part %>%
+  mutate(passed_any = min(expected_loss) < care_threshold,
+         passed_end = last(expected_loss) < care_threshold) %>%
   filter(head(cumsum(c(1, expected_loss) < care_threshold), -1) == 0) %>%
-  plot(color = 'pass_any', y_aestetic = 'expected_loss', line = care_threshold) +
-  geom_point(data = data_peek, color = 'red') +
+  plot(line = care_threshold) +
   scale_y_log10() +
   ylab('Posterior expected loss')
 ```
