@@ -1,3 +1,5 @@
+library(tidyverse)
+
 source('simulation.R')
 
 test_that('simulate works properly', {
