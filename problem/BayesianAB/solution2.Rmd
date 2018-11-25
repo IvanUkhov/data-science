@@ -86,7 +86,7 @@ data %>%
 
 ```{r, message = FALSE}
 data_part <- data %>%
-  filter(replication %in% sample(replication_num, 2)) %>%
+  filter(replication %in% sample(replication_num, 1)) %>%
   group_by(replication) %>%
   arrange(day) %>%
   filter(head(cumsum(c(1, expected_loss) < care_threshold), -1) == 0) %>%
