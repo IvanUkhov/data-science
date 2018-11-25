@@ -7,15 +7,15 @@ expected_loss_approximate <- function(...) {
 }
 
 expected_loss_kernel <- function(probability_greater, alpha_a, beta_a, alpha_b, beta_b) {
-  v_a <-
+  integral_1 <-
     lbeta(alpha_a + 1, beta_a) -
     lbeta(alpha_a, beta_a) +
     probability_greater(alpha_a + 1, beta_a, alpha_b, beta_b)
-  v_b <-
+  integral_2 <-
     lbeta(alpha_b + 1, beta_b) -
     lbeta(alpha_b, beta_b) +
     probability_greater(alpha_a, beta_a, alpha_b + 1, beta_b)
-  exp(v_a) - exp(v_b)
+  exp(integral_1) - exp(integral_2)
 }
 
 probability_greater <- function(alpha_a, beta_a, alpha_b, beta_b) {
@@ -29,9 +29,9 @@ probability_greater <- function(alpha_a, beta_a, alpha_b, beta_b) {
 }
 
 probability_greater_approximate <- function(alpha_a, beta_a, alpha_b, beta_b) {
-  m_a <- alpha_a / (alpha_a + beta_a)
-  m_b <- alpha_b / (alpha_b + beta_b)
-  v_a <- alpha_a * beta_a / ((alpha_a + beta_a)^2 * (alpha_a + beta_a + 1))
-  v_b <- alpha_b * beta_b / ((alpha_b + beta_b)^2 * (alpha_b + beta_b + 1))
-  pnorm(0, m_b - m_a, sqrt(v_a + v_b), log.p = TRUE)
+  mean_a <- alpha_a / (alpha_a + beta_a)
+  mean_b <- alpha_b / (alpha_b + beta_b)
+  variance_a <- alpha_a * beta_a / ((alpha_a + beta_a)^2 * (alpha_a + beta_a + 1))
+  variance_b <- alpha_b * beta_b / ((alpha_b + beta_b)^2 * (alpha_b + beta_b + 1))
+  pnorm(0, mean_b - mean_a, sqrt(variance_a + variance_b), log.p = TRUE)
 }
