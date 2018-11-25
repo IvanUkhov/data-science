@@ -24,7 +24,7 @@ significance_level <- 0.05
 # No effect
 
 ```{r}
-set.seed(2018 - 12 - 01)
+set.seed(2018-12-01)
 
 data_null <- tibble(replication = seq_len(replication_num)) %>%
   simulate(day_num = day_num,

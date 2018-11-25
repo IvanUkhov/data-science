@@ -1,0 +1,65 @@
+---
+title: 'Bayesian A/B testing'
+output: html_document
+---
+
+```{r, message = FALSE}
+library(devtools)
+library(tidyverse)
+load_all('simulation')
+
+source('plotting.R')
+theme_set(theme_light())
+```
+
+```{r}
+replication_num <- 10000
+day_num = 21
+daily_num <- 1000
+effect_size <- 0
+prior_alpha <- 20
+prior_beta <- 980
+conversion_base <- prior_alpha / (prior_alpha + prior_beta)
+care_threshold <- 0.1 * conversion_base
+```
+
+```{r}
+set.seed(2018-12-01)
+
+data <- tibble(replication = seq_len(replication_num)) %>%
+  mutate(a_rate = conversion_base,
+         b_effect = effect_size,
+         a_alpha = prior_alpha,
+         a_beta = prior_beta,
+         b_alpha = prior_alpha,
+         b_beta = prior_beta) %>%
+  simulate(day_num = day_num,
+           daily_num = daily_num,
+           approximate = TRUE) %>%
+  group_by(replication) %>%
+  mutate(pass_any = min(expected_loss) < care_threshold,
+         pass_end = last(expected_loss) < care_threshold) %>%
+  ungroup()
+
+data %>%
+  { mean(.$pass_any) }
+```
+
+```{r}
+data_part <- data %>%
+  filter(replication %in% sample(replication_num, 100)) %>%
+  group_by(replication, a_alpha) %>%
+  mutate(pass_end = last(expected_loss) < care_threshold,
+         pass_any = min(expected_loss) < care_threshold)
+
+data_peek <- data_part %>%
+  filter(expected_loss < care_threshold) %>%
+  slice(1)
+
+data_part %>%
+  filter(head(cumsum(c(1, expected_loss) < care_threshold), -1) == 0) %>%
+  plot(color = 'pass_any', y_aestetic = 'expected_loss', line = care_threshold) +
+  geom_point(data = data_peek, color = 'red') +
+  scale_y_log10() +
+  ylab('Posterior expected loss')
+```
