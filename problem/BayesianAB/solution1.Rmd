@@ -8,25 +8,9 @@ library(devtools)
 library(tidyverse)
 load_all('simulation')
 
+source('plotting.R')
 source('testing.R')
 theme_set(theme_light())
-```
-
-```{r}
-plot <- function(data,
-                 line = 0.05,
-                 color = 'pass_end',
-                 y_aestetic = 'p_value',
-                 labels = c('Not significant', 'Significant')) {
-  data %>%
-    ggplot(aes_string('day', y_aestetic, group = 'replication')) +
-    geom_line(aes_string(alpha = color, color = color)) +
-    geom_hline(color = 'red', yintercept = line, lty = 2) +
-    scale_color_manual(values = c('black', 'red'), labels = labels) +
-    scale_alpha_manual(values = c(0.15, 1), labels = labels) +
-    labs(color = '', alpha = '') +
-    xlab('Day of experiment')
-}
 ```
 
 ```{r}
@@ -66,8 +50,8 @@ data_null %>%
 data <- data_null %>%
   filter(replication %in% sample(replication_num, 100)) %>%
   group_by(replication) %>%
-  mutate(pass_end = last(p_value) < significance_level) %>%
-  mutate(pass_anywhere = min(p_value) < significance_level)
+  mutate(pass_any = min(p_value) < significance_level,
+         pass_end = last(p_value) < significance_level)
 
 data_wait <- data %>%
   filter(day == day_num, p_value < significance_level)
@@ -95,7 +79,7 @@ data_peek %>% nrow()
 ```{r}
 data %>%
   filter(head(cumsum(c(1, p_value) < significance_level), -1) == 0) %>%
-  plot(color = 'pass_anywhere', line = significance_level) +
+  plot(color = 'pass_any', line = significance_level) +
   geom_point(data = data_peek, color = 'red') +
   ylab('P-value')
 ```
@@ -120,8 +104,8 @@ data_negative <- tibble(replication = seq_len(replication_num)) %>%
 data <- data_negative %>%
   filter(replication %in% sample(replication_num, 100)) %>%
   group_by(replication, a_alpha) %>%
-  mutate(pass_end = last(expected_loss) < care_threshold,
-         pass_anywhere = min(expected_loss) < care_threshold)
+  mutate(pass_any = min(expected_loss) < care_threshold,
+         pass_end = last(expected_loss) < care_threshold)
 ```
 
 ### Waiting
@@ -135,9 +119,7 @@ data_wait %>% nrow()
 
 ```{r}
 data %>%
-  plot(y_aestetic = 'expected_loss',
-       line = care_threshold,
-       labels = c('Not passed', 'Passed')) +
+  plot(y_aestetic = 'expected_loss', line = care_threshold) +
   geom_point(data = data_wait, color = 'red') +
   scale_y_log10() +
   ylab('Posterior expected loss')
@@ -156,10 +138,9 @@ data_peek %>% nrow()
 ```{r}
 data %>%
   filter(head(cumsum(c(1, expected_loss) < care_threshold), -1) == 0) %>%
-  plot('pass_anywhere',
+  plot(color = 'pass_any',
        y_aestetic = 'expected_loss',
-       line = care_threshold,
-       labels = c('Not passed', 'Passed')) +
+       line = care_threshold) +
   geom_point(data = data_peek, color = 'red') +
   scale_y_log10() +
   ylab('Posterior expected loss')
