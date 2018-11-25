@@ -1,33 +1,37 @@
-expected_loss <- function(...) expected_loss_kernel(lbeta_greater, ...)
-
-expected_loss_approximate <- function(...) expected_loss_kernel(lbeta_greater_approximate, ...)
-
-expected_loss_kernel <- function(lbeta_greater, alpha_1, beta_1, alpha_2, beta_2) {
-  v1 <-
-    lbeta(alpha_1 + 1, beta_1) -
-    lbeta(alpha_1, beta_1) +
-    lbeta_greater(alpha_1 + 1, beta_1, alpha_2, beta_2)
-  v2 <-
-    lbeta(alpha_2 + 1, beta_2) -
-    lbeta(alpha_2, beta_2) +
-    lbeta_greater(alpha_1, beta_1, alpha_2 + 1, beta_2)
-  exp(v1) - exp(v2)
+expected_loss <- function(...) {
+  expected_loss_kernel(probability_greater, ...)
 }
 
-lbeta_greater <- function(alpha_1, beta_1, alpha_2, beta_2) {
-  j <- seq(0, alpha_2 - 1)
+expected_loss_approximate <- function(...) {
+  expected_loss_kernel(probability_greater_approximate, ...)
+}
+
+expected_loss_kernel <- function(probability_greater, alpha_a, beta_a, alpha_b, beta_b) {
+  v_a <-
+    lbeta(alpha_a + 1, beta_a) -
+    lbeta(alpha_a, beta_a) +
+    probability_greater(alpha_a + 1, beta_a, alpha_b, beta_b)
+  v_b <-
+    lbeta(alpha_b + 1, beta_b) -
+    lbeta(alpha_b, beta_b) +
+    probability_greater(alpha_a, beta_a, alpha_b + 1, beta_b)
+  exp(v_a) - exp(v_b)
+}
+
+probability_greater <- function(alpha_a, beta_a, alpha_b, beta_b) {
+  j <- seq(0, alpha_b - 1)
   series <-
-    lbeta(alpha_1 + j, beta_1 + beta_2) -
-    log(beta_2 + j) -
-    lbeta(1 + j, beta_2) -
-    lbeta(alpha_1, beta_1)
+    lbeta(alpha_a + j, beta_a + beta_b) -
+    log(beta_b + j) -
+    lbeta(1 + j, beta_b) -
+    lbeta(alpha_a, beta_a)
   log(max(1 - sum(exp(series)), 0))
 }
 
-lbeta_greater_approximate <- function(alpha_1, beta_1, alpha_2, beta_2) {
-  u1 <- alpha_1 / (alpha_1 + beta_1)
-  u2 <- alpha_2 / (alpha_2 + beta_2)
-  v1 <- alpha_1 * beta_1 / ((alpha_1 + beta_1)^2 * (alpha_1 + beta_1 + 1))
-  v2 <- alpha_2 * beta_2 / ((alpha_2 + beta_2)^2 * (alpha_2 + beta_2 + 1))
-  pnorm(0, u2 - u1, sqrt(v1 + v2), log.p = TRUE)
+probability_greater_approximate <- function(alpha_a, beta_a, alpha_b, beta_b) {
+  m_a <- alpha_a / (alpha_a + beta_a)
+  m_b <- alpha_b / (alpha_b + beta_b)
+  v_a <- alpha_a * beta_a / ((alpha_a + beta_a)^2 * (alpha_a + beta_a + 1))
+  v_b <- alpha_b * beta_b / ((alpha_b + beta_b)^2 * (alpha_b + beta_b + 1))
+  pnorm(0, m_b - m_a, sqrt(v_a + v_b), log.p = TRUE)
 }
