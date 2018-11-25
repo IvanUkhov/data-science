@@ -95,10 +95,10 @@ data_negative <- tibble(replication = seq_len(replication_num)) %>%
            daily_num = daily_num,
            a_rate = conversion_base,
            b_effect = -effect_size,
-           a_alpha = 10,
-           b_alpha = 10,
-           a_beta = 90,
-           b_beta = 90,
+           a_alpha_prior = 10,
+           b_alpha_prior = 10,
+           a_beta_prior = 90,
+           b_beta_prior = 90,
            approximate = TRUE)
 
 data <- data_negative %>%
@@ -155,10 +155,10 @@ data_positive <- tibble(replication = seq_len(4 * replication_num)) %>%
          b_effect = b_rate - a_rate) %>%
   simulate(day_num = day_num,
            daily_num = daily_num,
-           a_alpha = 100,
-           b_alpha = 100,
-           a_beta = 99900,
-           b_beta = 99900)
+           a_alpha_prior = 100,
+           b_alpha_prior = 100,
+           a_beta_prior = 99900,
+           b_beta_prior = 99900)
 
 data <- data_positive %>%
   arrange(replication) %>%

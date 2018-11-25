@@ -1,3 +1,4 @@
 export(simulate)
 import(dplyr)
+import(purrr)
 import(tidyr)

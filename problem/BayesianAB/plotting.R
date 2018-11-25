@@ -9,6 +9,5 @@ plot <- function(data,
     geom_hline(color = 'red', yintercept = line, lty = 2) +
     scale_color_manual(values = c('black', 'red'), labels = labels) +
     scale_alpha_manual(values = c(0.15, 1), labels = labels) +
-    labs(color = '', alpha = '') +
-    xlab('Day of experiment')
+    labs(x = 'Day of experiment', color = '', alpha = '')
 }

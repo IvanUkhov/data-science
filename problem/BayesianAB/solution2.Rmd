@@ -13,6 +13,16 @@ theme_set(theme_light())
 ```
 
 ```{r}
+compute_density <- function(a_alpha, a_beta, b_alpha, b_beta) {
+  tibble(Conversion = seq(0, 0.1, length.out = 1000)) %>%
+  crossing(Group = c('A', 'B')) %>%
+  mutate(Density = dbeta(Conversion,
+                         if_else(Group == 'A', a_alpha, b_alpha),
+                         if_else(Group == 'A', a_beta, b_beta)))
+}
+```
+
+```{r}
 replication_num <- 10000
 day_num <- 21
 daily_num <- 1000
@@ -30,17 +40,13 @@ care_threshold <- 0.01 * base_conversion
 ## Prior distributions
 
 ```{r}
-tibble(Conversion = seq(0, 0.1, length.out = 1000)) %>%
-  crossing(Group = c('A', 'B')) %>%
-  mutate(Density = dbeta(Conversion,
-                         if_else(Group == 'A', base_alpha, case_alpha),
-                         if_else(Group == 'A', base_beta, case_beta))) %>%
+compute_density(base_alpha, base_beta, case_alpha, case_beta) %>%
   ggplot(aes(Conversion, Density, color = Group)) +
   geom_line() +
   theme(legend.title = element_blank())
 ```
 
-## Experiment
+## Simulation results
 
 ```{r}
 set.seed(2018-12-01)
@@ -48,10 +54,10 @@ set.seed(2018-12-01)
 data <- tibble(replication = seq_len(replication_num)) %>%
   mutate(a_rate = base_conversion,
          b_effect = case_effect,
-         a_alpha = base_alpha,
-         a_beta = base_beta,
-         b_alpha = case_alpha,
-         b_beta = case_beta) %>%
+         a_alpha_prior = base_alpha,
+         a_beta_prior = base_beta,
+         b_alpha_prior = case_alpha,
+         b_beta_prior = case_beta) %>%
   simulate(day_num = day_num,
            daily_num = daily_num,
            approximate = TRUE) %>%
@@ -67,9 +73,9 @@ data %>%
 ```{r, warning = FALSE}
 data_part <- data %>%
   filter(replication %in% sample(replication_num, 100)) %>%
-  group_by(replication, a_alpha) %>%
-  mutate(pass_end = last(expected_loss) < care_threshold,
-         pass_any = min(expected_loss) < care_threshold)
+  group_by(replication) %>%
+  mutate(pass_any = min(expected_loss) < care_threshold,
+         pass_end = last(expected_loss) < care_threshold)
 
 data_peek <- data_part %>%
   filter(expected_loss < care_threshold) %>%
@@ -81,4 +87,30 @@ data_part %>%
   geom_point(data = data_peek, color = 'red') +
   scale_y_log10() +
   ylab('Posterior expected loss')
+```
+
+# Posterior distributions
+
+```{r}
+data %>%
+  filter(replication %in% sample(replication_num, 1)) %>%
+  group_by(replication) %>%
+  arrange(day) %>%
+  filter(head(cumsum(c(1, expected_loss) < care_threshold), -1) == 0) %>%
+  summarize(a_alpha_posterior = last(a_alpha_posterior),
+            a_beta_posterior = last(a_beta_posterior),
+            b_alpha_posterior = last(b_alpha_posterior),
+            b_beta_posterior = last(b_beta_posterior)) %>%
+  nest(a_alpha_posterior,
+       a_beta_posterior,
+       b_alpha_posterior,
+       b_beta_posterior) %>%
+  mutate(data = map(data, ~ compute_density(.$a_alpha_posterior,
+                                            .$a_beta_posterior,
+                                            .$b_alpha_posterior,
+                                            .$b_beta_posterior))) %>%
+  unnest() %>%
+  ggplot(aes(Conversion, Density, color = Group)) +
+  geom_line(aes(group = interaction(replication, Group))) +
+  theme(legend.title = element_blank())
 ```
