@@ -91,13 +91,14 @@ data_part %>%
 
 # Posterior distributions
 
-```{r}
-data %>%
-  filter(replication %in% sample(replication_num, 1)) %>%
+```{r, message = FALSE}
+data_part <- data %>%
+  filter(replication %in% sample(replication_num, 2)) %>%
   group_by(replication) %>%
   arrange(day) %>%
   filter(head(cumsum(c(1, expected_loss) < care_threshold), -1) == 0) %>%
-  summarize(a_alpha_posterior = last(a_alpha_posterior),
+  summarize(day = last(day),
+            a_alpha_posterior = last(a_alpha_posterior),
             a_beta_posterior = last(a_beta_posterior),
             b_alpha_posterior = last(b_alpha_posterior),
             b_beta_posterior = last(b_beta_posterior)) %>%
@@ -109,8 +110,18 @@ data %>%
                                             .$a_beta_posterior,
                                             .$b_alpha_posterior,
                                             .$b_beta_posterior))) %>%
-  unnest() %>%
+  unnest()
+
+data_peak <- data_part %>%
+  group_by(replication, Group) %>%
+  arrange(desc(Density)) %>%
+  top_n(1) %>%
+  ungroup() %>%
+  mutate(Density = Density + 0.05 * max(Density))
+
+data_part %>%
   ggplot(aes(Conversion, Density, color = Group)) +
   geom_line(aes(group = interaction(replication, Group))) +
+  geom_text(data = data_peak, aes(label = day), show.legend = FALSE) +
   theme(legend.title = element_blank())
 ```
