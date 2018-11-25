@@ -14,25 +14,44 @@ theme_set(theme_light())
 
 ```{r}
 replication_num <- 10000
-day_num = 21
+day_num <- 21
 daily_num <- 1000
-effect_size <- 0
-prior_alpha <- 20
-prior_beta <- 980
-conversion_base <- prior_alpha / (prior_alpha + prior_beta)
-care_threshold <- 0.1 * conversion_base
+
+base_alpha <- 20
+base_beta <- 980
+base_conversion <- base_alpha / (base_alpha + base_beta)
+
+case_effect <- 0
+case_alpha <- base_alpha / 10
+case_beta <- base_beta / 10
+care_threshold <- 0.01 * base_conversion
 ```
+
+## Prior distributions
+
+```{r}
+tibble(Conversion = seq(0, 0.1, length.out = 1000)) %>%
+  crossing(Group = c('A', 'B')) %>%
+  mutate(Density = dbeta(Conversion,
+                         if_else(Group == 'A', base_alpha, case_alpha),
+                         if_else(Group == 'A', base_beta, case_beta))) %>%
+  ggplot(aes(Conversion, Density, color = Group)) +
+  geom_line() +
+  theme(legend.title = element_blank())
+```
+
+## Experiment
 
 ```{r}
 set.seed(2018-12-01)
 
 data <- tibble(replication = seq_len(replication_num)) %>%
-  mutate(a_rate = conversion_base,
-         b_effect = effect_size,
-         a_alpha = prior_alpha,
-         a_beta = prior_beta,
-         b_alpha = prior_alpha,
-         b_beta = prior_beta) %>%
+  mutate(a_rate = base_conversion,
+         b_effect = case_effect,
+         a_alpha = base_alpha,
+         a_beta = base_beta,
+         b_alpha = case_alpha,
+         b_beta = case_beta) %>%
   simulate(day_num = day_num,
            daily_num = daily_num,
            approximate = TRUE) %>%
@@ -45,7 +64,7 @@ data %>%
   { mean(.$pass_any) }
 ```
 
-```{r}
+```{r, warning = FALSE}
 data_part <- data %>%
   filter(replication %in% sample(replication_num, 100)) %>%
   group_by(replication, a_alpha) %>%
