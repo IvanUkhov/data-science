@@ -67,12 +67,8 @@ data <- tibble(replication = seq_len(replication_num)) %>%
   ungroup()
 
 data %>%
-  { mean(.$passed_any) }
-```
-
-```{r}
-data %>%
-  { mean(.$greater_probability) }
+  summarize(greater_probability = mean(greater_probability),
+            passed_any = mean(passed_any))
 ```
 
 ```{r, warning = FALSE}
