@@ -23,25 +23,36 @@ simulate <- function(data, day_num, ...) {
            b_alpha_posterior = b_alpha_prior + b_success_num,
            a_beta_posterior = a_beta_prior + a_total_num - a_success_num,
            b_beta_posterior = b_beta_prior + b_total_num - b_success_num) %>%
-    mutate(expected_loss = do.call(expected_loss_wrapper, .))
+    mutate(expected_loss = do.call(compute_expected_loss, .),
+           greater_probability = 1 - exp(do.call(compute_greater_probability, .)))
 }
 
-expected_loss_wrapper <- function(a_alpha_posterior,
-                                  b_alpha_posterior,
-                                  a_beta_posterior,
-                                  b_beta_posterior,
-                                  approximate = FALSE, ...) {
+compute_expected_loss <- function(...) {
+  compute_posterior(expected_loss, expected_loss_approximate, ...)
+}
+
+compute_greater_probability <- function(...) {
+  compute_posterior(greater_probability, greater_probability_approximate, ...)
+}
+
+compute_posterior <- function(compute_exact,
+                              compute_approximate,
+                              a_alpha_posterior,
+                              b_alpha_posterior,
+                              a_beta_posterior,
+                              b_beta_posterior,
+                              approximate = FALSE, ...) {
   if (!all(approximate)) {
     sapply(seq_along(a_alpha_posterior), function(i) {
-      expected_loss(a_alpha_posterior[i],
+      compute_exact(a_alpha_posterior[i],
                     a_beta_posterior[i],
                     b_alpha_posterior[i],
                     b_beta_posterior[i])
     })
   } else {
-    expected_loss_approximate(a_alpha_posterior,
-                              a_beta_posterior,
-                              b_alpha_posterior,
-                              b_beta_posterior)
+    compute_approximate(a_alpha_posterior,
+                        a_beta_posterior,
+                        b_alpha_posterior,
+                        b_beta_posterior)
   }
 }
