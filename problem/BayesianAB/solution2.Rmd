@@ -79,8 +79,6 @@ data %>%
 data %>%
   filter(replication %in% sample(replication_num, 100)) %>%
   group_by(replication) %>%
-  mutate(passed_any = min(expected_loss) < care_threshold,
-         passed_end = last(expected_loss) < care_threshold) %>%
   filter(head(cumsum(c(1, expected_loss) < care_threshold), -1) == 0) %>%
   plot(line = care_threshold) +
   scale_y_log10() +

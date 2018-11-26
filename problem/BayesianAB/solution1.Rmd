@@ -136,7 +136,6 @@ data_peek %>% nrow()
 data %>%
   filter(head(cumsum(c(1, expected_loss) < care_threshold), -1) == 0) %>%
   plot(line = care_threshold) +
-  geom_point(data = data_peek, color = 'red') +
   scale_y_log10() +
   ylab('Posterior expected loss')
 ```
