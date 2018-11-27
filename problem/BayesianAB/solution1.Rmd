@@ -4,8 +4,10 @@ output: html_document
 ---
 
 ```{r, message = FALSE}
-library(devtools)
-install_github('chain-rule/conversion-rate')
+if (!'conversion.rate' %in% rownames(installed.packages())) {
+  library(devtools)
+  install_github('chain-rule/conversion-rate')
+}
 
 library(conversion.rate)
 library(tidyverse)
@@ -19,7 +21,7 @@ theme_set(theme_light())
 replication_num <- 10000
 day_num = 20
 daily_num <- 10000
-conversion_base <- 0.001
+a_rate <- 0.001
 significance_level <- 0.05
 ```
 
@@ -31,7 +33,7 @@ set.seed(2018-12-01)
 data_null <- tibble(replication = seq_len(replication_num)) %>%
   simulate(day_num = day_num,
            daily_num = daily_num,
-           a_rate = conversion_base,
+           a_rate = a_rate,
            b_effect = 0,
            approximate = TRUE) %>%
   mutate(p_value = vectorized_prop_test(a_success_num,
@@ -87,14 +89,14 @@ data %>%
 # Negative effect
 
 ```{r}
-effect_size <- 0.0001
-care_threshold <- 0.1 * effect_size
+b_effect <- 0.0001
+care_threshold <- 0.1 * b_effect
 
 data_negative <- tibble(replication = seq_len(replication_num)) %>%
   simulate(day_num = day_num,
            daily_num = daily_num,
-           a_rate = conversion_base,
-           b_effect = -effect_size,
+           a_rate = a_rate,
+           b_effect = -b_effect,
            a_alpha_prior = 10,
            b_alpha_prior = 10,
            a_beta_prior = 90,
