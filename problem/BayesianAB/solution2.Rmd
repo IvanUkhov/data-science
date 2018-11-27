@@ -5,8 +5,10 @@ output: html_document
 
 ```{r, message = FALSE}
 library(devtools)
+install_github('chain-rule/conversion-rate')
+
+library(conversion.rate)
 library(tidyverse)
-load_all('simulation')
 
 source('plotting.R')
 theme_set(theme_light())
