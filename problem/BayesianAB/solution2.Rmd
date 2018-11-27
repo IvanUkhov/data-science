@@ -39,7 +39,7 @@ b_effect <- 0
 b_alpha_prior <- a_alpha_prior / 10
 b_beta_prior <- a_beta_prior / 10
 
-care_threshold <- 0.01 * a_rate
+loss_threshold <- 0.01 * a_rate
 ```
 
 ## Prior distributions
@@ -67,8 +67,8 @@ data <- tibble(replication = seq_len(replication_num)) %>%
            daily_num = daily_num,
            approximate = TRUE) %>%
   group_by(replication) %>%
-  mutate(passed_any = min(expected_loss) < care_threshold,
-         passed_end = last(expected_loss) < care_threshold) %>%
+  mutate(passed_any = min(expected_loss) < loss_threshold,
+         passed_end = last(expected_loss) < loss_threshold) %>%
   ungroup()
 
 data %>%
@@ -80,8 +80,8 @@ data %>%
 data %>%
   filter(replication %in% sample(replication_num, 100)) %>%
   group_by(replication) %>%
-  filter(head(cumsum(c(1, expected_loss) < care_threshold), -1) == 0) %>%
-  plot(line = care_threshold) +
+  filter(head(cumsum(c(1, expected_loss) < loss_threshold), -1) == 0) %>%
+  plot(line = loss_threshold) +
   scale_y_log10() +
   ylab('Posterior expected loss')
 ```
@@ -93,7 +93,7 @@ data_part <- data %>%
   filter(replication %in% sample(replication_num, 1)) %>%
   group_by(replication) %>%
   arrange(day) %>%
-  filter(head(cumsum(c(1, expected_loss) < care_threshold), -1) == 0) %>%
+  filter(head(cumsum(c(1, expected_loss) < loss_threshold), -1) == 0) %>%
   summarize(day = last(day),
             a_alpha_posterior = last(a_alpha_posterior),
             a_beta_posterior = last(a_beta_posterior),
