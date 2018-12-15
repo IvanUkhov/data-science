@@ -1,7 +1,6 @@
 *.csv
 *.dat
 *.html
-*.txt
 *.zip
 .ipynb_checkpoints
 .RData
