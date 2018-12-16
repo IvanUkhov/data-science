@@ -6,7 +6,7 @@ output: html_document
 ```{r, message = FALSE}
 if (!'conversion.rate' %in% rownames(installed.packages())) {
   library(devtools)
-  install_github('chain-rule/conversion-rate')
+  install_github('chain-rule/conversion-rate', quiet = TRUE, upgrade = 'always')
 }
 
 library(conversion.rate)
@@ -17,12 +17,12 @@ theme_set(theme_light())
 ```
 
 ```{r}
-compute_density <- function(a_alpha, a_beta, b_alpha, b_beta) {
+compute_density <- function(alpha_a, beta_a, alpha_b, beta_b) {
   tibble(Conversion = seq(0, 0.1, length.out = 1000)) %>%
   crossing(Group = c('A', 'B')) %>%
   mutate(Density = dbeta(Conversion,
-                         if_else(Group == 'A', a_alpha, b_alpha),
-                         if_else(Group == 'A', a_beta, b_beta)))
+                         if_else(Group == 'A', alpha_a, alpha_b),
+                         if_else(Group == 'A', beta_a, beta_b)))
 }
 ```
 
@@ -31,21 +31,19 @@ replication_num <- 10000
 day_num <- 21
 daily_num <- 1000
 
-a_alpha_prior <- 20
-a_beta_prior <- 980
-a_rate <- a_alpha_prior / (a_alpha_prior + a_beta_prior)
+alpha_prior_a <- 20
+beta_prior_a <- 980
 
-b_effect <- 0
-b_alpha_prior <- a_alpha_prior / 10
-b_beta_prior <- a_beta_prior / 10
+alpha_prior_b <- alpha_prior_a / 10
+beta_prior_b <- beta_prior_a / 10
 
-loss_threshold <- 0.01 * a_rate
+loss_threshold <- 0.01 * alpha_prior_a / (alpha_prior_a + beta_prior_a)
 ```
 
 ## Prior distributions
 
 ```{r}
-compute_density(a_alpha_prior, a_beta_prior, b_alpha_prior, b_beta_prior) %>%
+compute_density(alpha_prior_a, beta_prior_a, alpha_prior_b, beta_prior_b) %>%
   ggplot(aes(Conversion, Density, color = Group)) +
   geom_line() +
   theme(legend.title = element_blank())
@@ -57,15 +55,14 @@ compute_density(a_alpha_prior, a_beta_prior, b_alpha_prior, b_beta_prior) %>%
 set.seed(2018-12-01)
 
 data <- tibble(replication = seq_len(replication_num)) %>%
-  mutate(a_rate = a_rate,
-         b_effect = b_effect,
-         a_alpha_prior = a_alpha_prior,
-         a_beta_prior = a_beta_prior,
-         b_alpha_prior = b_alpha_prior,
-         b_beta_prior = b_beta_prior) %>%
+  mutate(alpha_prior_a = alpha_prior_a,
+         beta_prior_a = beta_prior_a,
+         alpha_prior_b = alpha_prior_b,
+         beta_prior_b = beta_prior_b) %>%
   simulate(day_num = day_num,
            daily_num = daily_num,
-           approximate = TRUE) %>%
+           expected_loss = list(approximate = TRUE),
+           greater_probability = list(approximate = TRUE)) %>%
   group_by(replication) %>%
   mutate(passed_any = min(expected_loss) < loss_threshold,
          passed_end = last(expected_loss) < loss_threshold) %>%
@@ -95,18 +92,18 @@ data_part <- data %>%
   arrange(day) %>%
   filter(head(cumsum(c(1, expected_loss) < loss_threshold), -1) == 0) %>%
   summarize(day = last(day),
-            a_alpha_posterior = last(a_alpha_posterior),
-            a_beta_posterior = last(a_beta_posterior),
-            b_alpha_posterior = last(b_alpha_posterior),
-            b_beta_posterior = last(b_beta_posterior)) %>%
-  nest(a_alpha_posterior,
-       a_beta_posterior,
-       b_alpha_posterior,
-       b_beta_posterior) %>%
-  mutate(data = map(data, ~ compute_density(.$a_alpha_posterior,
-                                            .$a_beta_posterior,
-                                            .$b_alpha_posterior,
-                                            .$b_beta_posterior))) %>%
+            alpha_posterior_a = last(alpha_posterior_a),
+            beta_posterior_a = last(beta_posterior_a),
+            alpha_posterior_b = last(alpha_posterior_b),
+            beta_posterior_b = last(beta_posterior_b)) %>%
+  nest(alpha_posterior_a,
+       beta_posterior_a,
+       alpha_posterior_b,
+       beta_posterior_b) %>%
+  mutate(data = map(data, ~ compute_density(.$alpha_posterior_a,
+                                            .$beta_posterior_a,
+                                            .$alpha_posterior_b,
+                                            .$beta_posterior_b))) %>%
   unnest()
 
 data_peak <- data_part %>%

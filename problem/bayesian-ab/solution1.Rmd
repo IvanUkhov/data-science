@@ -6,7 +6,7 @@ output: html_document
 ```{r, message = FALSE}
 if (!'conversion.rate' %in% rownames(installed.packages())) {
   library(devtools)
-  install_github('chain-rule/conversion-rate')
+  install_github('chain-rule/conversion-rate', quiet = TRUE, upgrade = 'always')
 }
 
 library(conversion.rate)
@@ -21,7 +21,7 @@ theme_set(theme_light())
 replication_num <- 10000
 day_num = 20
 daily_num <- 10000
-a_rate <- 0.001
+rate_a <- 0.001
 significance_level <- 0.05
 ```
 
@@ -33,13 +33,13 @@ set.seed(2018-12-01)
 data_null <- tibble(replication = seq_len(replication_num)) %>%
   simulate(day_num = day_num,
            daily_num = daily_num,
-           a_rate = a_rate,
-           b_effect = 0,
+           rate_a = rate_a,
+           rate_b = rate_a,
            approximate = TRUE) %>%
-  mutate(p_value = vectorized_prop_test(a_success_num,
-                                        a_total_num - a_success_num,
-                                        b_success_num,
-                                        b_total_num - b_success_num)$p.value)
+  mutate(p_value = vectorized_prop_test(success_num_a,
+                                        total_num_a - success_num_a,
+                                        success_num_b,
+                                        total_num_b - success_num_b)$p.value)
 ```
 
 ### Waiting
@@ -89,23 +89,23 @@ data %>%
 # Negative effect
 
 ```{r}
-b_effect <- 0.0001
-care_threshold <- 0.1 * b_effect
+effect_b <- 0.0001
+care_threshold <- 0.1 * effect_b
 
 data_negative <- tibble(replication = seq_len(replication_num)) %>%
   simulate(day_num = day_num,
            daily_num = daily_num,
-           a_rate = a_rate,
-           b_effect = -b_effect,
-           a_alpha_prior = 10,
-           b_alpha_prior = 10,
-           a_beta_prior = 90,
-           b_beta_prior = 90,
-           approximate = TRUE)
+           rate_a = rate_a,
+           rate_b = rate_a - effect_b,
+           alpha_prior_a = 10,
+           alpha_prior_b = 10,
+           beta_prior_a = 90,
+           beta_prior_b = 90,
+           expected_loss = list(approximate = TRUE))
 
 data <- data_negative %>%
   filter(replication %in% sample(replication_num, 100)) %>%
-  group_by(replication, a_alpha_prior) %>%
+  group_by(replication, alpha_prior_a) %>%
   mutate(passed_any = min(expected_loss) < care_threshold,
          passed_end = last(expected_loss) < care_threshold)
 ```
@@ -148,15 +148,15 @@ data %>%
 
 ```{r}
 data_positive <- tibble(replication = seq_len(4 * replication_num)) %>%
-  mutate(a_rate = rbeta(n(), 100, 99900),
-         b_rate = rbeta(n(), 100, 99900),
-         b_effect = b_rate - a_rate) %>%
+  mutate(rate_a = rbeta(n(), 100, 99900),
+         rate_b = rbeta(n(), 100, 99900)) %>%
   simulate(day_num = day_num,
            daily_num = daily_num,
-           a_alpha_prior = 100,
-           b_alpha_prior = 100,
-           a_beta_prior = 99900,
-           b_beta_prior = 99900)
+           alpha_prior_a = 100,
+           alpha_prior_b = 100,
+           beta_prior_a = 99900,
+           beta_prior_b = 99900,
+           expected_loss = TRUE)
 
 data <- data_positive %>%
   arrange(replication) %>%
@@ -167,7 +167,7 @@ data <- data_positive %>%
 
 ```{r, warning = FALSE}
 data %>%
-  mutate(loss = pmax(-b_effect, 0)) %>%
+  mutate(loss = pmax(-(rate_b - rate_a), 0)) %>%
   group_by(rule) %>%
   arrange(expected_loss) %>%
   mutate(cumulative_loss = cummean(loss)) %>%
