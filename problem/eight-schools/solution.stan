@@ -1,20 +1,20 @@
 data {
-  int<lower=0> J;
-  real y[J];
-  real<lower=0> sigma[J];
+  int<lower=0> n;
+  real effect[n];
+  real<lower=0> sigma[n];
 }
 
 parameters {
   real mu;
   real<lower=0> tau;
-  vector[J] eta;
+  vector[n] eta;
 }
 
 transformed parameters {
-  vector[J] theta = mu + tau * eta;
+  vector[n] theta = mu + tau * eta;
 }
 
 model {
   target += normal_lpdf(eta | 0, 1);
-  target += normal_lpdf(y | theta, sigma);
+  target += normal_lpdf(effect | theta, sigma);
 }
