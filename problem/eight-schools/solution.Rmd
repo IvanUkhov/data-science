@@ -1,0 +1,33 @@
+---
+title: 'Eight Schools'
+output: html_notebook
+---
+
+```{r, message = FALSE}
+library(rstan)
+
+options(mc.cores = parallel::detectCores())
+rstan_options(auto_write = TRUE)
+```
+
+```{r}
+data <- list(
+  J = 8, 
+  y = c(28,  8, -3,  7, -1,  1, 18, 12),
+  sigma = c(15, 10, 16, 11,  9, 11, 10, 18)
+)
+
+model <- stan(file = 'solution.stan', data = data)
+```
+
+```{r}
+print(model)
+```
+
+```{r}
+plot(model, pars = c('eta'), show_density = TRUE)
+```
+
+```{r}
+pairs(model, pars = c('mu', 'tau', 'lp__'))
+```
