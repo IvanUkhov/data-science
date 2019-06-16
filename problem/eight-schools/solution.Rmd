@@ -5,29 +5,48 @@ output: html_notebook
 
 ```{r, message = FALSE}
 library(rstan)
+library(tidyverse)
 
 options(mc.cores = parallel::detectCores())
 rstan_options(auto_write = TRUE)
+
+theme_set(theme_light())
 ```
 
 ```{r}
-data <- list(
-  n = 8,
-  effect = c(28,  8, -3,  7, -1,  1, 18, 12),
-  sigma = c(15, 10, 16, 11,  9, 11, 10, 18)
+data <- tribble(
+  ~effect, ~sigma,
+       28,     15,
+        8,     10,
+       -3,     16,
+        7,     11,
+       -1,      9,
+        1,     11,
+       18,     10,
+       12,     18,
 )
 
-model <- stan(file = 'solution.stan', data = data)
+model <- stan(file = 'solution.stan',
+              data = list(n = nrow(data),
+                          effect = data$effect,
+                          sigma = data$sigma))
 ```
 
 ```{r}
 print(model)
 ```
 
-```{r}
-plot(model, pars = c('eta'), show_density = TRUE)
-```
+# Marginal posterior density for _tau_
 
 ```{r}
-pairs(model, pars = c('mu', 'tau', 'lp__'))
+samples <- rstan::extract(model, permuted = TRUE) %>% as_tibble()
+
+samples %>%
+  ggplot(aes(x = tau)) +
+  geom_histogram(aes(y = ..density..),
+                 bins = 50,
+                 color = 'white',
+                 fill = 'gray90') +
+  geom_density() +
+  labs(y = 'Posterior density')
 ```
