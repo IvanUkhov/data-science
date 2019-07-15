@@ -1,18 +1,48 @@
 ---
 title: 'Analysis of a bioassay experiment'
-output: html_notebook
+output: html_document
 ---
 
 ```{r, message = FALSE}
+library(rstan)
 library(tidyverse)
+
+options(mc.cores = parallel::detectCores())
+rstan_options(auto_write = TRUE)
 ```
 
 ```{r}
 data <- tribble(
      ~x, ~n, ~y,
-  -0.86,  5,  0,
-  -0.30,  5,  1,
-  -0.05,  5,  3,
-   0.73,  5,  5
+  -0.86, 5L, 0L,
+  -0.30, 5L, 1L,
+  -0.05, 5L, 3L,
+   0.73, 5L, 5L
 )
+
+model <- stan_model('model.stan')
+fit <- sampling(model,
+                data = list(m = nrow(data),
+                            x = data %>% pull(x),
+                            n = data %>% pull(n),
+                            y = data %>% pull(y)),
+                control = list(adapt_delta = 0.99),
+                seed = 42)
+```
+
+```{r, dev = 'svg', fig.width = 10, fig.asp = 1}
+pairs(fit, pars = c('alpha', 'beta', 'lp__'), las = 1)
+```
+
+```{r}
+rstan::summary(fit, pars = c('alpha', 'beta', 'lp__'))$summary %>%
+  as_tibble()
+```
+
+```{r}
+rstan::extract(fit, pars = c('alpha', 'beta'), permuted = FALSE) %>%
+  plyr::adply(2) %>%
+  mutate(LD50 = -alpha / beta) %>%
+  ggplot(aes(x = LD50)) +
+  geom_histogram(bins = 50)
 ```
