@@ -1,0 +1,18 @@
+---
+title: 'Analysis of a bioassay experiment'
+output: html_notebook
+---
+
+```{r, message = FALSE}
+library(tidyverse)
+```
+
+```{r}
+data <- tribble(
+     ~x, ~n, ~y,
+  -0.86,  5,  0,
+  -0.30,  5,  1,
+  -0.05,  5,  3,
+   0.73,  5,  5
+)
+```
