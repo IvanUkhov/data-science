@@ -25,3 +25,15 @@ data <- tribble(
 )
 ```
 
+# No difference at baseline
+
+```{r}
+data %>%
+  filter(time == 0) %>%
+  group_by(part) %>%
+  summarize(delta = sum(if_else(group == 'exercise', 1, -1) * mean),
+            sigma = sqrt(sum((count - 1) * sd^2) / (sum(count) - 2)),
+            t = delta / sigma / sqrt(sum(1 / count)),
+            p = pt(abs(t), df = sum(count) - 2, lower.tail = FALSE))
+```
+
