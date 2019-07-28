@@ -1,0 +1,27 @@
+---
+title: 'Training and the size of hippocampus'
+output: html_notebook
+---
+
+```{r, message = FALSE}
+library(tidyverse)
+```
+
+```{r}
+data <- tribble(
+  ~part,       ~group, ~time, ~count, ~mean,  ~sd,
+  'left',  'exercise',    0L,     60,  4.89, 0.74,
+  'left',  'exercise',    6L,     60,  4.93, 0.71,
+  'left',  'exercise',   12L,     60,  4.98, 0.69,
+  'left',   'stretch',    0L,     60,  4.90, 0.80,
+  'left',   'stretch',    6L,     60,  4.86, 0.80,
+  'left',   'stretch',   12L,     60,  4.83, 0.80,
+  'right', 'exercise',    0L,     60,  5.00, 0.67,
+  'right', 'exercise',    6L,     60,  5.03, 0.63,
+  'right', 'exercise',   12L,     60,  5.09, 0.63,
+  'right',  'stretch',    0L,     60,  4.92, 0.80,
+  'right',  'stretch',    6L,     60,  4.89, 0.83,
+  'right',  'stretch',   12L,     60,  4.86, 0.82
+)
+```
+
