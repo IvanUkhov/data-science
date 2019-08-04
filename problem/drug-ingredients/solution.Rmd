@@ -1,0 +1,387 @@
+---
+title: 'Exploratory analysis of drug ingredients'
+output:
+  html_document:
+    df_print: kable
+---
+
+# Introduction
+
+In this notebook, we use the [Drug API] of openFDA in order to answer a few
+questions concerning drug ingredients and, more specifically, the average number
+of ingredients per year. The following R packages are assumed to be installed:
+
+* `MASS` (for robust linear regression),
+* `knitr` (for rendering the notebook), and
+* `tidyverse` (for everything else).
+
+[Drug API]: https://open.fda.gov/apis/drug/
+
+# Analysis
+
+We begin by adjusting default settings and defining a function for interacting
+with the Drug API.
+
+```{r, message = FALSE}
+library(tidyverse)
+
+knitr::opts_chunk$set(
+  dev = 'svg',
+  fig.align = 'center',
+  fig.asp = 0.618,
+  fig.width = 8
+)
+theme_set(theme_minimal())
+
+get <- function(url = 'https://api.fda.gov/drug/label.json', ...) {
+  httr::GET(url = url, query = list(...)) %>%
+    httr::content(type = 'application/json')
+}
+```
+
+## What is the average number of ingredients per year in drugs by a specific manufacturer?
+
+The first question given in the above title. Let us read the release date, brand
+name, and ingredients of each drug by a specific manufacturer. We also read
+metadata, which we shall motivate shortly.
+
+```{r, cache = TRUE}
+process_drug <- function(entry) {
+  tibble(id = paste(entry$openfda$spl_id),
+         date = lubridate::parse_date_time(entry$effective_time, 'Ymd'),
+         brand = paste(entry$openfda$brand_name),
+         ingredients = paste(entry$spl_product_data_elements),
+         meta = do.call(paste, c(entry$information_for_patients,
+                                 entry$spl_patient_package_insert,
+                                 entry$spl_medguide)))
+}
+
+manufacturer <- 'AstraZeneca'
+search <- paste0('openfda.manufacturer_name:', manufacturer)
+drug_count <- get(search = search)$meta$results$total
+drugs <- get(search = search, limit = drug_count)$results
+drugs <- tibble(data = map(drugs, process_drug)) %>%
+  unnest()
+```
+
+The following table gives a brief summary:
+
+```{r, rows.print = 50}
+drugs %>%
+  select(date, brand, ingredients) %>%
+  arrange(date, brand) %>%
+  mutate(ingredients = str_trunc(ingredients, width = 50)) %>%
+  rename_all(str_to_title)
+```
+
+It can be seen that there have been found `r drug_count` entries. There are
+duplicates; however, we proceed without addressing this concern, assuming that
+there is a good but unknown-to-us reason behind this output. It can be also seen
+that the field with ingredients appears to be poorly structured. Firstly, it
+includes the brand name, and the spelling is not necessarily consistent.
+Secondly, there are repetitions. Thirdly and more unfortunately, it has no
+delimiters between entries, which means it is not straightforward to distinguish
+and count them programmatically.
+
+```{r}
+term_count <- get(search = search,
+                  count = 'spl_product_data_elements')$results %>%
+  map_int(~ .$count) %>%
+  sum()
+```
+
+For instance, counting terms using the API results in a total of `r term_count`
+“ingredients” for the `r drug_count` drugs or in `r round(term_count /
+drug_count)` “ingredients” per drug on average, which is a presumably drastic
+overestimation.
+
+There might exist rules to parse the ingredients field; however, we proceed
+assuming that there are none.
+
+A scan through the other fields reveals that the ingredients are occasionally
+mentioned in other fields—such `information_for_patients`,
+`spl_patient_package_insert`, and `spl_medguide`—and that those fields do have
+delimiters. Active and inactive ingredients are usually given as separate lists
+and follow a certain pattern, as illustrated below:
+
+```{r, rows.print = 50}
+drugs %>%
+  mutate(active = str_extract(meta,
+                              regex('\\bactive ingredients?( in [^:.]+)?:.*',
+                                    ignore_case = TRUE)),
+         inactive = str_extract(meta,
+                                regex('inactive ingredients?( in [^:.]+)?:.*',
+                                      ignore_case = TRUE))) %>%
+  mutate(active = str_trunc(active, 40),
+         inactive = str_trunc(inactive, 40)) %>%
+  select(brand, active, inactive) %>%
+  rename_all(str_to_title)
+```
+
+It can be seen that several drugs deviate from the pattern. Nonetheless, let us
+continue with those that follow it by gradually cleaning the text using regular
+expressions.
+
+```{r, rows.print = 50}
+drugs_processed <- drugs %>%
+  mutate(active = str_extract(meta,
+                              regex('\\bactive ingredients?( in [^:.]+)?:.*',
+                                    ignore_case = TRUE)),
+         active = str_replace(active,
+                              regex('active ingredients?( in [^:.]+)?:\\s+',
+                                    ignore_case = TRUE), ''),
+         active = str_replace(active,
+                              regex('(\\.|inactive).*',
+                                    ignore_case = TRUE), ''),
+         active = str_replace_all(active, regex(',?\\s+and\\s+'), ','),
+         inactive = str_extract(meta,
+                                regex('inactive ingredients?( in [^:.]+)?:.*',
+                                      ignore_case = TRUE)),
+         inactive = str_replace(inactive,
+                                regex('inactive ingredients?( in [^:.]+)?:\\s+',
+                                      ignore_case = TRUE), ''),
+         inactive = str_replace(inactive,
+                                regex(str_c(str_replace(brand, ' ', '[, ]*'), '.*'),
+                                      ignore_case = TRUE), ''),
+         inactive = str_replace(inactive,
+                                '(\\.|\\s+(Distributed|For more|Manufactured|Patient|This)).*', ''),
+         inactive = str_replace_all(inactive, '\\([^)]+\\)', ''),
+         inactive = str_replace_all(inactive, '\\s*Contents of [^:]+:\\s*', ','),
+         inactive = str_replace_all(inactive, '\\s*[A-Z][^:]+(:|contains)\\s*', ','),
+         inactive = str_replace_all(inactive, ',?\\s+and\\s+', ','),
+         inactive = str_replace_all(inactive, '\\s*,+\\s*', ','),
+         inactive = str_replace(inactive, '^[^\\w]+', '')) %>%
+  select(-meta)
+
+drugs_processed %>%
+  mutate(active = str_trunc(active, 40),
+         inactive = str_trunc(inactive, 40)) %>%
+  select(brand, active, inactive) %>%
+  rename_all(str_to_title)
+```
+
+It can be seen that there are usually one or two active ingredients and several
+inactive ones. The cleaning process is not perfect; however, it allows us to
+distinguish individual ingredients in an automated fashion.
+
+The following table summarizes the outcome:
+
+```{r, cache = TRUE}
+process_id <- function(id) {
+  search <- paste0('openfda.manufacturer_name:', manufacturer,
+                   '+AND+openfda.spl_id:', id)
+  get(search = I(search),
+      count = 'spl_product_data_elements')$results %>%
+    map_int(~ .$count) %>%
+    sum()
+}
+
+drugs_counted <- drugs_processed %>%
+  mutate(active_count = if_else(is.na(active),
+                                NA_integer_,
+                                map_int(active, ~ length(unlist(strsplit(., ','))))),
+         inactive_count = if_else(is.na(inactive),
+                                  NA_integer_,
+                                  map_int(inactive, ~ length(unlist(strsplit(., ','))))),
+         ingredient_count = active_count + inactive_count,
+         term_count = map_int(id, process_id)) %>%
+  select(-active, -inactive)
+```
+
+```{r, rows.print = 50}
+drugs_counted %>%
+  select(date, brand, active_count, inactive_count, ingredient_count, term_count) %>%
+  rename_all(~ str_replace_all(., '_', ' ')) %>%
+  rename_all(str_to_title)
+```
+
+Here, the Term Count column shows the number of terms as identified by the API.
+Let us also take a look at a scatter plot:
+
+```{r}
+drugs_counted %>%
+  filter(!is.na(ingredient_count)) %>%
+  ggplot(aes(x = term_count, y = ingredient_count)) +
+  geom_point() +
+  geom_smooth(method = 'lm', se = FALSE, color = 'black') +
+  labs(title = 'Number of ingredients versus terms',
+       x = 'Number of terms',
+       y = 'Number of ingredients')
+```
+
+It can be seen that there are relatively large outliers. However, one could
+potentially using this information for estimating the number of ingredients
+given the number of terms, at least as a crude approximation.
+
+```{r}
+model <- drugs_counted %>%
+  filter(!is.na(ingredient_count)) %>%
+  with(MASS::rlm(ingredient_count ~ term_count))
+```
+
+Excluding the drugs for which there were not ingredient lists found, the answer
+to the question under consideration is summarized in the following table:
+
+```{r}
+drugs_counted %>%
+  filter(!is.na(ingredient_count)) %>%
+  mutate(year = lubridate::year(date)) %>%
+  group_by(year) %>%
+  summarize(brand_names = paste(brand, collapse = ','),
+            brand_count = n(),
+            average_ingredient_count = round(sum(ingredient_count) / n())) %>%
+  mutate(brand_names = str_trunc(brand_names, 50)) %>%
+  rename_all(~ str_replace_all(., '_', ' ')) %>%
+  rename_all(str_to_title)
+```
+
+## What is the average number of ingredients per year and route for all manufacturers?
+
+The second question is given in the above title. To begin with, let us take a
+look at possible routes.
+
+```{r, cache = TRUE}
+process_route <- function(entry) {
+  tibble(name = tolower(entry$term),
+         count = entry$count)
+}
+
+routes <- get(count = 'openfda.route.exact')$results
+routes <- tibble(data = map(routes, process_route)) %>%
+  unnest() %>%
+  mutate(name = str_replace(name, '\\s*\\(.*\\)', '')) %>%
+  group_by(name) %>%
+  summarize(count = sum(count)) %>%
+  ungroup()
+```
+
+The following table lists the most common ones:
+
+```{r, rows.print = 100}
+routes %>%
+  top_n(10, wt = count) %>%
+  arrange(desc(count)) %>%
+  rename_all(str_to_title)
+```
+
+We now inspect the number of drugs per year.
+
+```{r}
+process_date <- function(entry) {
+  tibble(date = lubridate::parse_date_time(entry$time, 'Ymd'),
+         count = entry$count)
+}
+
+dates <- get(count = 'effective_time')$results
+dates <- tibble(data = map(dates, process_date)) %>%
+  unnest()
+```
+
+The following figure shows the number of drugs per year since 2000:
+
+```{r}
+dates %>%
+  filter(date >= '2000-01-01',
+         date < '2019-01-01') %>%
+  mutate(year = lubridate::year(date)) %>%
+  group_by(year) %>%
+  summarize(count = sum(count)) %>%
+  ggplot(aes(x = year, y = count)) +
+  geom_line() +
+  scale_x_continuous(breaks = seq(2000, 2018, by = 2)) +
+  scale_y_log10() +
+  labs(title = 'Number of drugs over time',
+       y = 'Number of drugs') +
+  theme(axis.title.x = element_blank())
+```
+
+Note the logarithmic scale on the vertical axis.
+
+Given the development in the previous section, it is clear that the approach
+taken will not scale for all drugs. One has to resort to other means.
+
+First of all, let us assume that we are interested in the last ten years and in
+the top ten most frequent routes. We can then query the API and count the
+number of terms in the ingredients field for each year and route.
+
+```{r, cache = TRUE}
+years_last_10 <- seq(2009, 2018)
+routes_top_10 <- routes %>% top_n(10, wt = count) %>% pull(name)
+
+process_year <- function(year) {
+  range <- paste0('[', year, '0101+TO+', year, '1231]')
+  results <- get(search = I(paste0('effective_time:', range)),
+                 count = 'openfda.route')$results
+  tibble(route = results %>% map_chr(~ .$term),
+         drug_count = results %>% map_int(~ .$count)) %>%
+    filter(route %in% routes_top_10) %>%
+    mutate(term_count = map2_int(year, route, process_year_route))
+}
+
+process_year_route <- function(year, route) {
+  range <- paste0('[', year, '0101+TO+', year, '1231]')
+  results <- get(search = I(paste0('effective_time:', range,
+                                   '+AND+openfda.route:', route)),
+                 count = 'spl_product_data_elements')$results
+  sum(results %>% map_int(~ .$count))
+}
+
+data <- tibble(year = years_last_10) %>%
+  mutate(data = map(year, process_year)) %>%
+  unnest()
+```
+
+The following table summarizes the result:
+
+```{r, rows.print = 100}
+data %>%
+  mutate(average_term_count = round(term_count / drug_count)) %>%
+  arrange(desc(year), route) %>%
+  mutate(year = as.character(year)) %>%
+  rename_all(~ str_replace_all(., '_', ' ')) %>%
+  rename_all(str_to_title)
+```
+
+It does not answer the question; however, let us make a rough estimation of what
+the answer might be using the observations from the previous section:
+
+```{r, rows.print = 100}
+data_predicted <- data %>%
+  mutate(ingredient_count = predict(model, data.frame(term_count = term_count)),
+         average_term_count = term_count / drug_count,
+         average_ingredient_count = ingredient_count / drug_count)
+
+data_predicted %>%
+  mutate(ingredient_count = round(ingredient_count),
+         average_term_count = round(average_term_count),
+         average_ingredient_count = ceiling(average_ingredient_count)) %>%
+  arrange(desc(year), route) %>%
+  mutate(year = as.character(year)) %>%
+  rename_all(~ str_replace_all(., '_', ' ')) %>%
+  rename_all(str_to_title)
+```
+
+A graphical representation is given in the following figure:
+
+```{r}
+data_predicted %>%
+  mutate(route = str_to_title(route)) %>%
+  ggplot(aes(x = year, y = average_ingredient_count, color = route)) +
+  geom_line(size = 1) +
+  scale_x_continuous(breaks = years_last_10) +
+  labs(title = 'Average number of ingredients over time',
+       y = 'Average number of ingredients') +
+  theme(axis.title.x = element_blank(),
+        legend.title = element_blank())
+```
+
+The estimates are likely to be conservative. In general, we have no reason to
+trust them. It is particularly concerning that the model was fit on individual
+drugs, while it is applied an entirely different scale. A proper evaluation of
+this heuristic on unseen but labeled data is needed.
+
+# Conclusion
+
+In this notebook, we have familiarized ourselves with the openFDA data and made
+an attempt to answer two questions related to ingredients used in drug
+production. Further investigations are needed.
