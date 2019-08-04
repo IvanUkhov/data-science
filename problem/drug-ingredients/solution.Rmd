@@ -41,9 +41,9 @@ get <- function(url = 'https://api.fda.gov/drug/label.json', ...) {
 
 ## What is the average number of ingredients per year in drugs by a specific manufacturer?
 
-The first question given in the above title. Let us read the release date, brand
-name, and ingredients of each drug by a specific manufacturer. We also read
-metadata, which we shall motivate shortly.
+The first question is given in the above title. Let us read the release date,
+brand name, and ingredients of each drug by a specific manufacturer. We also
+read metadata, which we shall motivate shortly.
 
 ```{r, cache = TRUE}
 process_drug <- function(entry) {
@@ -99,7 +99,7 @@ There might exist rules to parse the ingredients field; however, we proceed
 assuming that there are none.
 
 A scan through the other fields reveals that the ingredients are occasionally
-mentioned in other fields—such `information_for_patients`,
+mentioned in other fields—such as `information_for_patients`,
 `spl_patient_package_insert`, and `spl_medguide`—and that those fields do have
 delimiters. Active and inactive ingredients are usually given as separate lists
 and follow a certain pattern, as illustrated below:
@@ -210,8 +210,8 @@ drugs_counted %>%
 ```
 
 It can be seen that there are relatively large outliers. However, one could
-potentially using this information for estimating the number of ingredients
-given the number of terms, at least as a crude approximation.
+potentially use this information for estimating the number of ingredients given
+the number of terms, at least as a crude approximation.
 
 ```{r}
 model <- drugs_counted %>%
@@ -219,7 +219,7 @@ model <- drugs_counted %>%
   with(MASS::rlm(ingredient_count ~ term_count))
 ```
 
-Excluding the drugs for which there were not ingredient lists found, the answer
+Excluding the drugs for which there were no ingredient lists found, the answer
 to the question under consideration is summarized in the following table:
 
 ```{r}
@@ -300,9 +300,9 @@ Note the logarithmic scale on the vertical axis.
 Given the development in the previous section, it is clear that the approach
 taken will not scale for all drugs. One has to resort to other means.
 
-First of all, let us assume that we are interested in the last ten years and in
-the top ten most frequent routes. We can then query the API and count the
-number of terms in the ingredients field for each year and route.
+First of all, let us assume that we are interested in the last ten years and the
+top ten most frequent routes. We can then query the API and count the number of
+terms in the ingredients field for each year and route.
 
 ```{r, cache = TRUE}
 years_last_10 <- seq(2009, 2018)
