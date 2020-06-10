@@ -1,0 +1,28 @@
+---
+title: 'Lobaration 1'
+output: html_document
+---
+
+```{r, message = FALSE}
+library(rstan)
+library(tidyverse)
+
+options(mc.cores = parallel::detectCores())
+rstan_options(auto_write = TRUE)
+theme_set(theme_minimal())
+```
+
+```{r}
+url <- 'https://github.com/mattiasvillani/AdvBayesLearnCourse/raw/master/Labs/LidarData.dat'
+data <- readr::read_table(url, col_types = list(LogRatio = 'd', Distance = 'd'))
+```
+
+```{r}
+model <- stan_model('model.stan')
+```
+
+```{r}
+x <- as.matrix(data$Distance)
+samples <- sampling(model, data = list(x = x, d = ncol(x), n = nrow(x)))
+```
+
