@@ -61,11 +61,22 @@ print(model, pars = c('sigma_noise', 'sigma_process', 'ell_process'))
 
 ```{r}
 model %>%
+  spread_draws(sigma_noise, sigma_process, ell_process) %>%
+  pivot_longer(sigma_noise:ell_process) %>%
+  ggplot(aes(value, name)) +
+  stat_pointintervalh() +
+  theme(axis.title.x = element_blank(),
+        axis.title.y = element_blank())
+```
+
+```{r}
+model %>%
   spread_draws(y_new[index]) %>%
   mean_qi() %>%
   left_join(data, by = 'index') %>%
   ggplot(aes(x, y_new)) +
   geom_line() +
   geom_point(aes(y = y), size = 2) +
-  geom_ribbon(aes(ymin = .lower, ymax = .upper), alpha = 0.1)
+  geom_ribbon(aes(ymin = .lower, ymax = .upper), alpha = 0.1) +
+  labs(y = 'y')
 ```
