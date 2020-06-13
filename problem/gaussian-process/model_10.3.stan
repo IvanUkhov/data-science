@@ -36,8 +36,6 @@ generated quantities {
   matrix[m, m] L_inv = inverse(L);
   matrix[n, m] M = K_nm * L_inv' * L_inv;
   vector[n] mu_new = M * y;
-  matrix[n, n] L_new = cholesky_decompose(add_diag(cov_exp_quad(x_new, sigma_process, ell_process) - M * K_nm',
-                                                   rep_vector(1e-6, n)));
-
-  // vector[m] y_new = multi_normal_rng(mu_new, K_new);
+  matrix[n, n] K_new = cov_exp_quad(x_new, sigma_process, ell_process) - M * K_nm';
+  vector[n] y_new = multi_normal_rng(mu_new, add_diag(K_new, rep_vector(1e-6, n)));
 }

@@ -34,15 +34,6 @@ model %>%
 # Fitting
 
 ```{r}
-library(invgamma)
-
-tibble(x = seq(0.01, 5, by = 0.01)) %>%
-  mutate(y = dinvgamma(x, 3, 0.5)) %>%
-  ggplot(aes(x, y)) +
-  geom_line()
-```
-
-```{r}
 data <- read_file('https://raw.githubusercontent.com/stan-dev/example-models/master/misc/gaussian-process/gp-fit.data.R')
 writeLines(data, '/tmp/data.R')
 data <- read_rdump('/tmp/data.R') %>%
@@ -70,10 +61,10 @@ print(model, pars = c('sigma_noise', 'sigma_process', 'ell_process'))
 
 ```{r}
 model %>%
-  spread_draws(mu_hat[index]) %>%
+  spread_draws(y_new[index]) %>%
   mean_qi() %>%
   left_join(data, by = 'index') %>%
-  ggplot(aes(x, mu_hat)) +
+  ggplot(aes(x, y_new)) +
   geom_line() +
   geom_point(aes(y = y), size = 2) +
   geom_ribbon(aes(ymin = .lower, ymax = .upper), alpha = 0.1)
