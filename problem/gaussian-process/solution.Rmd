@@ -57,13 +57,11 @@ data %>%
 ```{r}
 model <- stan(file = 'model_10.3.stan',
               data = list(d = 1,
+                          m = nrow(data),
                           n = nrow(data),
                           x = as.matrix(data$x),
                           y = data$y,
-                          sigma_noise_tau = 1,
-                          sigma_process_tau = 1,
-                          ell_process_alpha = 5,
-                          ell_process_beta = 5))
+                          x_new = as.matrix(data$x)))
 ```
 
 ```{r}
@@ -72,10 +70,10 @@ print(model, pars = c('sigma_noise', 'sigma_process', 'ell_process'))
 
 ```{r}
 model %>%
-  spread_draws(y_hat[index]) %>%
+  spread_draws(mu_hat[index]) %>%
   mean_qi() %>%
   left_join(data, by = 'index') %>%
-  ggplot(aes(x, y_hat)) +
+  ggplot(aes(x, mu_hat)) +
   geom_line() +
   geom_point(aes(y = y), size = 2) +
   geom_ribbon(aes(ymin = .lower, ymax = .upper), alpha = 0.1)
