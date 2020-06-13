@@ -1,0 +1,82 @@
+---
+title: 'Simulation'
+output: html_document
+---
+
+```{r, message = FALSE}
+library(rstan)
+library(tidybayes)
+library(tidyverse)
+
+options(mc.cores = parallel::detectCores())
+rstan_options(auto_write = TRUE)
+theme_set(theme_minimal())
+```
+
+# Simulation
+
+```{r}
+x <- as.matrix(seq(0, 10, by = 0.1))
+model <- stan(file = 'model_10.2.stan',
+              data = list(d = ncol(x), n = nrow(x), x = x))
+```
+
+```{r}
+model %>%
+  spread_draws(y[index]) %>%
+  median_qi() %>%
+  left_join(tibble(index = seq(1, length(x)), x = x), by = 'index') %>%
+  ggplot(aes(x, y)) +
+  geom_line() +
+  geom_ribbon(aes(ymin = .lower, ymax = .upper), alpha = 0.1)
+```
+
+# Fitting
+
+```{r}
+library(invgamma)
+
+tibble(x = seq(0.01, 5, by = 0.01)) %>%
+  mutate(y = dinvgamma(x, 3, 0.5)) %>%
+  ggplot(aes(x, y)) +
+  geom_line()
+```
+
+```{r}
+data <- read_file('https://raw.githubusercontent.com/stan-dev/example-models/master/misc/gaussian-process/gp-fit.data.R')
+writeLines(data, '/tmp/data.R')
+data <- read_rdump('/tmp/data.R') %>%
+  as_tibble() %>%
+  select(-N) %>%
+  mutate(index = row_number())
+data %>%
+  ggplot(aes(x, y)) +
+  geom_point(size = 2)
+```
+
+```{r}
+model <- stan(file = 'model_10.3.stan',
+              data = list(d = 1,
+                          n = nrow(data),
+                          x = as.matrix(data$x),
+                          y = data$y,
+                          sigma_noise_tau = 1,
+                          sigma_process_tau = 1,
+                          ell_process_alpha = 5,
+                          ell_process_beta = 5))
+```
+
+```{r}
+print(model, pars = c('sigma_noise', 'sigma_process', 'ell_process'))
+```
+
+```{r}
+model %>%
+  spread_draws(y_hat[index]) %>%
+  mean_qi() %>%
+  left_join(data, by = 'index') %>%
+  ggplot(aes(x, y_hat)) +
+  geom_line() +
+  geom_point(aes(y = y), size = 2) +
+  geom_ribbon(aes(ymin = .lower, ymax = .upper), alpha = 0.1)
+```
