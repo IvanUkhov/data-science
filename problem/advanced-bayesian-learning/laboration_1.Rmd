@@ -67,7 +67,7 @@ posterior_predictive <- function(x_new, x, y, sigma_noise = 1, jitter = 1e-6, ..
   K_11 <- kernel(x, x, ...);
   K_21 <- kernel(x_new, x, ...);
   K_22 <- kernel(x_new, x_new, ...);
-  U <- chol(K_11 + diag(sigma_noise**2, m));
+  U <- chol(K_11 + diag(sigma_noise^2, m));
   U_inv <- backsolve(U, diag(m));
   K_inv <- U_inv %*% t(U_inv); 
   mu_new <- K_21 %*% K_inv %*% y;
