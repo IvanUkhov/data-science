@@ -28,6 +28,7 @@ data %>%
   geom_point(size = 1)
 ```
 
+# Homoscedastic
 
 ```{r}
 model <- stan(file = 'model_1.1.stan',
@@ -79,24 +80,17 @@ posterior_predictive <- function(x_new, x, y, noise_sigma, ...) {
   U_new <- chol(K_22 - K_21 %*% K_inv %*% t(K_21) + diag(noise_sigma^2, n));
   as.vector(mu_new + U_new %*% as.matrix(rnorm(n)))
 }
-```
 
-```{r}
 sample <- function(...) {
   tibble(x = data$x,
          y = posterior_predictive(as.matrix(data$x), as.matrix(data$x), data$y, ...))
 }
 
-samples <- model %>%
+model %>%
   spread_draws(noise_sigma, process_sigma, process_ell) %>%
-  mutate(curve = pmap(list(noise_sigma = noise_sigma,
-                           process_sigma = process_sigma,
-                           process_ell = process_ell), sample))
-```
-
-```{r}
-samples %>%
-  select(curve) %>%
+  transmute(curve = pmap(list(noise_sigma = noise_sigma,
+                              process_sigma = process_sigma,
+                              process_ell = process_ell), sample)) %>%
   unnest(curve) %>%
   group_by(x) %>%
   mean_qi() %>%
@@ -104,4 +98,82 @@ samples %>%
   geom_line() +
   geom_point(data = data, size = 1) +
   geom_ribbon(aes(ymin = .lower, ymax = .upper), alpha = 0.1)
+```
+
+# Heteroscedastic
+
+```{r}
+model <- stan(file = 'model_1.2.stan',
+              data = list(d = 1,
+                          m = nrow(data),
+                          x = as.matrix(data$x),
+                          y = data$y))
+print(model)
+```
+
+```{r}
+model %>%
+  spread_draws(noise_intercept, noise_slope[dimension], process_sigma, process_ell) %>%
+  ungroup() %>%
+  select(-dimension) %>%
+  pivot_longer(noise_intercept:process_ell) %>%
+  mutate(name = factor(name, levels = c('noise_intercept', 'noise_slope', 'process_sigma', 'process_ell')),
+         name = fct_rev(name)) %>%
+  ggplot(aes(value, name)) +
+  stat_pointintervalh() +
+  coord_cartesian(xlim = c(-10, 5)) +
+  scale_x_continuous(breaks = seq(-10, 5, by = 1)) +
+  theme(axis.title.x = element_blank(),
+        axis.title.y = element_blank())
+```
+
+```{r}
+posterior_predictive <- function(x_new, noise_intercept, noise_slope) {
+  noise_sigma <- sqrt(exp(noise_intercept + x_new %*% noise_slope));
+  rnorm(nrow(x_new), 0, noise_sigma)
+}
+
+sample <- function(...) {
+  tibble(x = data$x,
+         y = posterior_predictive(as.matrix(data$x), ...))
+}
+
+model %>%
+  spread_draws(noise_intercept, noise_slope[.]) %>%
+  transmute(curve = pmap(list(noise_intercept = noise_intercept,
+                              noise_slope = noise_slope), sample)) %>%
+  unnest(curve) %>%
+  group_by(x) %>%
+  mean_qi() %>%
+  ggplot(aes(x, y)) +
+  geom_line() +
+  geom_ribbon(aes(ymin = .lower, ymax = .upper), alpha = 0.1)
+```
+
+```{r}
+posterior_predictive <- function(x_new, x, y, noise_intercept, noise_slope, ...) {
+  m <- nrow(x);
+  n <- nrow(x_new);
+  K_11 <- kernel(x, x, ...);
+  K_21 <- kernel(x_new, x, ...);
+  K_22 <- kernel(x_new, x_new, ...);
+  U <- chol(K_11 + diag(0.01 + 0 * exp(noise_intercept + x %*% noise_slope)));
+  U_inv <- backsolve(U, diag(m));
+  K_inv <- U_inv %*% t(U_inv);
+  mu_new <- K_21 %*% K_inv %*% y;
+  U_new <- chol(K_22 - K_21 %*% K_inv %*% t(K_21) + diag(0.01 + 0 * exp(noise_intercept + x_new %*% noise_slope)));
+  as.vector(mu_new + U_new %*% as.matrix(rnorm(n)))
+}
+
+sample <- function(...) {
+  tibble(x = data$x,
+         y = posterior_predictive(as.matrix(data$x), as.matrix(data$x), data$y, ...))
+}
+
+model %>%
+  spread_draws(noise_intercept, noise_slope[.], process_sigma, process_ell)
+  mutate(curve = pmap(list(noise_intercept = noise_intercept,
+                           noise_slope = noise_slope,
+                           process_sigma = process_sigma,
+                           process_ell = process_ell), sample))
 ```
