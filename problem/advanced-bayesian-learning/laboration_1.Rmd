@@ -157,11 +157,12 @@ posterior_predictive <- function(x_new, x, y, noise_intercept, noise_slope, ...)
   K_11 <- kernel(x, x, ...);
   K_21 <- kernel(x_new, x, ...);
   K_22 <- kernel(x_new, x_new, ...);
-  U <- chol(K_11 + diag(0.01 + 0 * exp(noise_intercept + x %*% noise_slope)));
+  U <- chol(K_11 + diag(as.vector(exp(noise_intercept + x %*% noise_slope))));
   U_inv <- backsolve(U, diag(m));
   K_inv <- U_inv %*% t(U_inv);
   mu_new <- K_21 %*% K_inv %*% y;
-  U_new <- chol(K_22 - K_21 %*% K_inv %*% t(K_21) + diag(0.01 + 0 * exp(noise_intercept + x_new %*% noise_slope)));
+  U_new <- chol(K_22 - K_21 %*% K_inv %*% t(K_21) +
+                diag(as.vector(exp(noise_intercept + x_new %*% noise_slope))));
   as.vector(mu_new + U_new %*% as.matrix(rnorm(n)))
 }
 
@@ -171,9 +172,16 @@ sample <- function(...) {
 }
 
 model %>%
-  spread_draws(noise_intercept, noise_slope[.], process_sigma, process_ell)
-  mutate(curve = pmap(list(noise_intercept = noise_intercept,
-                           noise_slope = noise_slope,
-                           process_sigma = process_sigma,
-                           process_ell = process_ell), sample))
+  spread_draws(noise_intercept, noise_slope[.], process_sigma, process_ell) %>%
+  transmute(curve = pmap(list(noise_intercept = noise_intercept,
+                              noise_slope = noise_slope,
+                              process_sigma = process_sigma,
+                              process_ell = process_ell), sample)) %>%
+  unnest(curve) %>%
+  group_by(x) %>%
+  mean_qi() %>%
+  ggplot(aes(x, y)) +
+  geom_line() +
+  geom_point(data = data, size = 1) +
+  geom_ribbon(aes(ymin = .lower, ymax = .upper), alpha = 0.1)
 ```
