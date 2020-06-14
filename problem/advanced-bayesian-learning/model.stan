@@ -1,35 +1,28 @@
 data {
   int<lower = 1> d;
-  int<lower = 1> n;
-  matrix[n, d] x;
+  int<lower = 1> m;
+  
+  vector[d] x[m];
+  vector[m] y;
 }
 
 transformed data {
-  vector[n] mu = rep_vector(0, n);
-  vector[d] x_[n];
-  for (i in 1:n) {
-    x_[i] = x[i]';
-  }
+  vector[m] mu = rep_vector(0, m);
 }
 
 parameters {
-  vector[n] y;
-  real intercept_n;
-  vector[d] slope_n;
-  real<lower = 0> ell_f;
-  real<lower = 0> sigma_f;
-}
-
-transformed parameters {
-  vector[n] sigma_n_squared = exp(intercept_n + x * slope_n);
-  matrix[n, n] K = cov_exp_quad(x_, sigma_f, ell_f) + diag_matrix(sigma_n_squared);
-  matrix[n, n] L = cholesky_decompose(K);
+  real<lower = 0> sigma_noise;
+  real<lower = 0> sigma_process;
+  real<lower = 0> ell_process;
 }
 
 model {
+  vector[m] noise = rep_vector(square(sigma_noise), m);
+  matrix[m, m] K = cov_exp_quad(x, sigma_process, ell_process);
+  matrix[m, m] L = cholesky_decompose(add_diag(K, noise));
+
   y ~ multi_normal_cholesky(mu, L);
-  intercept_n ~ normal(0, 1);
-  slope_n ~ normal(0, 1);
-  ell_f ~ inv_gamma(5, 5);
-  sigma_f ~ normal(0, 1);
+  sigma_noise ~ normal(0, 1);
+  sigma_process ~ normal(0, 1);
+  ell_process ~ inv_gamma(5, 5);
 }

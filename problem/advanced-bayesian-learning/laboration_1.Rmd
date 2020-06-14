@@ -5,24 +5,79 @@ output: html_document
 
 ```{r, message = FALSE}
 library(rstan)
+library(tidybayes)
 library(tidyverse)
 
 options(mc.cores = parallel::detectCores())
 rstan_options(auto_write = TRUE)
 theme_set(theme_minimal())
+
+set.seed(42);
 ```
 
 ```{r}
 url <- 'https://github.com/mattiasvillani/AdvBayesLearnCourse/raw/master/Labs/LidarData.dat'
-data <- readr::read_table(url, col_types = list(LogRatio = 'd', Distance = 'd'))
+data <- readr::read_table(url, col_types = list(LogRatio = 'd', Distance = 'd')) %>%
+  transmute(x = (Distance - mean(Distance)) / sd(Distance),
+            y = (LogRatio - mean(LogRatio)) / sd(LogRatio))
 ```
 
 ```{r}
-model <- stan_model('model.stan')
+data %>%
+  ggplot(aes(x, y)) +
+  geom_point(size = 1)
+```
+
+
+```{r}
+model <- stan(file = 'model.stan',
+              data = list(d = 1, m = nrow(data), x = as.matrix(data$x), y = data$y))
+print(model)
 ```
 
 ```{r}
-x <- as.matrix(data$Distance)
-samples <- sampling(model, data = list(x = x, d = ncol(x), n = nrow(x)))
+model %>%
+  spread_draws(sigma_noise, sigma_process, ell_process) %>%
+  pivot_longer(sigma_noise:ell_process) %>%
+  ggplot(aes(value, name)) +
+  stat_pointintervalh() +
+  theme(axis.title.x = element_blank(),
+        axis.title.y = element_blank())
+```
+
+```{r}
+distance <- function(x, y) {
+  m <- nrow(x);
+  n <- nrow(y);
+  xy <- x %*% t(y);
+  xx <- matrix(rep(apply(x * x, 1, sum), n), m, n, byrow = FALSE);
+  yy <- matrix(rep(apply(y * y, 1, sum), m), m, n, byrow = TRUE);
+  sqrt(pmax(xx + yy - 2 * xy, 0))
+}
+
+kernel <- function(x, y, sigma_process = 1, ell_process = 1) {
+  sigma_process**2 * exp(-distance(x, y)^2 / ell_process^2 / 2)
+}
+
+posterior_predictive <- function(x_new, x, y, sigma_noise = 1, jitter = 1e-6, ...) {
+  m <- nrow(x);
+  n <- nrow(x_new);
+  K_11 <- kernel(x, x, ...);
+  K_21 <- kernel(x_new, x, ...);
+  K_22 <- kernel(x_new, x_new, ...);
+  U <- chol(K_11 + diag(sigma_noise**2, m));
+  U_inv <- backsolve(U, diag(m));
+  K_inv <- U_inv %*% t(U_inv); 
+  mu_new <- K_21 %*% K_inv %*% y;
+  K_new <- K_22 - K_21 %*% K_inv %*% t(K_21);
+  U_new <- chol(K_new + diag(jitter, n));
+  mu_new + U_new %*% as.matrix(rnorm(n));
+}
+```
+
+```{r}
+model %>%
+  spread_draws(sigma_noise, sigma_process, ell_process) %>%
+  head()
 ```
 
