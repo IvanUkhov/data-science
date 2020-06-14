@@ -12,7 +12,7 @@ options(mc.cores = parallel::detectCores())
 rstan_options(auto_write = TRUE)
 theme_set(theme_minimal())
 
-set.seed(42);
+set.seed(42)
 ```
 
 ```{r}
@@ -39,6 +39,8 @@ print(model)
 model %>%
   spread_draws(sigma_noise, sigma_process, ell_process) %>%
   pivot_longer(sigma_noise:ell_process) %>%
+  mutate(name = factor(name, levels = c('sigma_noise', 'sigma_process', 'ell_process')),
+         name = fct_rev(name)) %>%
   ggplot(aes(value, name)) +
   stat_pointintervalh() +
   theme(axis.title.x = element_blank(),
@@ -71,13 +73,31 @@ posterior_predictive <- function(x_new, x, y, sigma_noise = 1, jitter = 1e-6, ..
   mu_new <- K_21 %*% K_inv %*% y;
   K_new <- K_22 - K_21 %*% K_inv %*% t(K_21);
   U_new <- chol(K_new + diag(jitter, n));
-  mu_new + U_new %*% as.matrix(rnorm(n));
+  as.vector(mu_new + U_new %*% as.matrix(rnorm(n)))
 }
 ```
 
 ```{r}
-model %>%
+sample <- function(...) {
+  tibble(x = data$x,
+         y = posterior_predictive(as.matrix(data$x), as.matrix(data$x), data$y, ...))
+}
+
+samples <- model %>%
   spread_draws(sigma_noise, sigma_process, ell_process) %>%
-  head()
+  mutate(curve = pmap(list(sigma_noise = sigma_noise,
+                           sigma_process = sigma_process,
+                           ell_process = ell_process), sample))
 ```
 
+```{r}
+samples %>%
+  select(curve) %>%
+  unnest(curve) %>%
+  group_by(x) %>%
+  mean_qi() %>%
+  ggplot(aes(x, y)) +
+  geom_line() +
+  geom_point(data = data, size = 1) +
+  geom_ribbon(aes(ymin = .lower, ymax = .upper), alpha = 0.1)
+```
