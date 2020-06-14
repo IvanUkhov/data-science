@@ -31,11 +31,16 @@ data %>%
 # Homoscedastic
 
 ```{r}
-model <- stan(file = 'model_1.1.stan',
-              data = list(d = 1,
-                          m = nrow(data),
-                          x = as.matrix(data$x),
-                          y = data$y))
+if (!file.exists('model_1.1.RData')) {
+  model <- stan(file = 'model_1.1.stan',
+                data = list(d = 1,
+                            m = nrow(data),
+                            x = as.matrix(data$x),
+                            y = data$y))
+  save(model, file = 'model_1.1.RData')
+} else {
+  load('model_1.1.RData')
+}
 print(model)
 ```
 
@@ -81,16 +86,18 @@ posterior_predictive <- function(x_new, x, y, noise_sigma, ...) {
   as.vector(mu_new + U_new %*% as.matrix(rnorm(n)))
 }
 
-sample <- function(...) {
+posterior_predictive_map <- function(...) {
   tibble(x = data$x,
-         y = posterior_predictive(as.matrix(data$x), as.matrix(data$x), data$y, ...))
+         y = posterior_predictive(as.matrix(data$x),
+                                  as.matrix(data$x),
+                                  data$y, ...))
 }
 
 model %>%
   spread_draws(noise_sigma, process_sigma, process_ell) %>%
   transmute(curve = pmap(list(noise_sigma = noise_sigma,
                               process_sigma = process_sigma,
-                              process_ell = process_ell), sample)) %>%
+                              process_ell = process_ell), posterior_predictive_map)) %>%
   unnest(curve) %>%
   group_by(x) %>%
   mean_qi() %>%
@@ -103,11 +110,16 @@ model %>%
 # Heteroscedastic
 
 ```{r}
-model <- stan(file = 'model_1.2.stan',
-              data = list(d = 1,
-                          m = nrow(data),
-                          x = as.matrix(data$x),
-                          y = data$y))
+if (!file.exists('model_1.2.RData')) {
+  model <- stan(file = 'model_1.2.stan',
+                data = list(d = 1,
+                            m = nrow(data),
+                            x = as.matrix(data$x),
+                            y = data$y))
+  save(model, file = 'model_1.2.RData')
+} else {
+  load('model_1.2.RData')
+}
 print(model)
 ```
 
@@ -133,7 +145,7 @@ posterior_predictive <- function(x_new, noise_intercept, noise_slope) {
   rnorm(nrow(x_new), 0, noise_sigma)
 }
 
-sample <- function(...) {
+posterior_predictive_map <- function(...) {
   tibble(x = data$x,
          y = posterior_predictive(as.matrix(data$x), ...))
 }
@@ -141,7 +153,7 @@ sample <- function(...) {
 model %>%
   spread_draws(noise_intercept, noise_slope[.]) %>%
   transmute(curve = pmap(list(noise_intercept = noise_intercept,
-                              noise_slope = noise_slope), sample)) %>%
+                              noise_slope = noise_slope), posterior_predictive_map)) %>%
   unnest(curve) %>%
   group_by(x) %>%
   mean_qi() %>%
@@ -166,9 +178,11 @@ posterior_predictive <- function(x_new, x, y, noise_intercept, noise_slope, ...)
   as.vector(mu_new + U_new %*% as.matrix(rnorm(n)))
 }
 
-sample <- function(...) {
+posterior_predictive_map <- function(...) {
   tibble(x = data$x,
-         y = posterior_predictive(as.matrix(data$x), as.matrix(data$x), data$y, ...))
+         y = posterior_predictive(as.matrix(data$x),
+                                  as.matrix(data$x),
+                                  data$y, ...))
 }
 
 model %>%
@@ -176,7 +190,7 @@ model %>%
   transmute(curve = pmap(list(noise_intercept = noise_intercept,
                               noise_slope = noise_slope,
                               process_sigma = process_sigma,
-                              process_ell = process_ell), sample)) %>%
+                              process_ell = process_ell), posterior_predictive_map)) %>%
   unnest(curve) %>%
   group_by(x) %>%
   mean_qi() %>%
