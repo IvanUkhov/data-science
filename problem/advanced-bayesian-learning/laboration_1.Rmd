@@ -48,7 +48,9 @@ print(model)
 model %>%
   spread_draws(noise_sigma, process_sigma, process_ell) %>%
   pivot_longer(noise_sigma:process_ell) %>%
-  mutate(name = factor(name, levels = c('noise_sigma', 'process_sigma', 'process_ell')),
+  mutate(name = factor(name, levels = c('noise_sigma',
+                                        'process_sigma',
+                                        'process_ell')),
          name = fct_rev(name)) %>%
   ggplot(aes(value, name)) +
   stat_pointintervalh() +
@@ -97,7 +99,8 @@ model %>%
   spread_draws(noise_sigma, process_sigma, process_ell) %>%
   transmute(curve = pmap(list(noise_sigma = noise_sigma,
                               process_sigma = process_sigma,
-                              process_ell = process_ell), posterior_predictive_map)) %>%
+                              process_ell = process_ell),
+                         posterior_predictive_map)) %>%
   unnest(curve) %>%
   group_by(x) %>%
   mean_qi() %>%
@@ -125,11 +128,17 @@ print(model)
 
 ```{r}
 model %>%
-  spread_draws(noise_intercept, noise_slope[dimension], process_sigma, process_ell) %>%
+  spread_draws(noise_intercept,
+               noise_slope[dimension],
+               process_sigma,
+               process_ell) %>%
   ungroup() %>%
   select(-dimension) %>%
   pivot_longer(noise_intercept:process_ell) %>%
-  mutate(name = factor(name, levels = c('noise_intercept', 'noise_slope', 'process_sigma', 'process_ell')),
+  mutate(name = factor(name, levels = c('noise_intercept',
+                                        'noise_slope',
+                                        'process_sigma',
+                                        'process_ell')),
          name = fct_rev(name)) %>%
   ggplot(aes(value, name)) +
   stat_pointintervalh() +
@@ -153,7 +162,8 @@ posterior_predictive_map <- function(...) {
 model %>%
   spread_draws(noise_intercept, noise_slope[.]) %>%
   transmute(curve = pmap(list(noise_intercept = noise_intercept,
-                              noise_slope = noise_slope), posterior_predictive_map)) %>%
+                              noise_slope = noise_slope),
+                         posterior_predictive_map)) %>%
   unnest(curve) %>%
   group_by(x) %>%
   mean_qi() %>%
@@ -190,7 +200,8 @@ model %>%
   transmute(curve = pmap(list(noise_intercept = noise_intercept,
                               noise_slope = noise_slope,
                               process_sigma = process_sigma,
-                              process_ell = process_ell), posterior_predictive_map)) %>%
+                              process_ell = process_ell),
+                         posterior_predictive_map)) %>%
   unnest(curve) %>%
   group_by(x) %>%
   mean_qi() %>%
