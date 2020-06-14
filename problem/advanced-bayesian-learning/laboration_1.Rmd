@@ -30,7 +30,7 @@ data %>%
 
 
 ```{r}
-model <- stan(file = 'model.stan',
+model <- stan(file = 'model_1.1.stan',
               data = list(d = 1,
                           m = nrow(data),
                           x = as.matrix(data$x),
@@ -40,9 +40,9 @@ print(model)
 
 ```{r}
 model %>%
-  spread_draws(sigma_noise, sigma_process, ell_process) %>%
-  pivot_longer(sigma_noise:ell_process) %>%
-  mutate(name = factor(name, levels = c('sigma_noise', 'sigma_process', 'ell_process')),
+  spread_draws(noise_sigma, process_sigma, process_ell) %>%
+  pivot_longer(noise_sigma:process_ell) %>%
+  mutate(name = factor(name, levels = c('noise_sigma', 'process_sigma', 'process_ell')),
          name = fct_rev(name)) %>%
   ggplot(aes(value, name)) +
   stat_pointintervalh() +
@@ -62,21 +62,21 @@ distance <- function(x, y) {
   sqrt(pmax(xx + yy - 2 * xy, 0))
 }
 
-kernel <- function(x, y, sigma_process, ell_process) {
-  sigma_process^2 * exp(-distance(x, y)^2 / ell_process^2 / 2)
+kernel <- function(x, y, process_sigma, process_ell) {
+  process_sigma^2 * exp(-distance(x, y)^2 / process_ell^2 / 2)
 }
 
-posterior_predictive <- function(x_new, x, y, sigma_noise, ...) {
+posterior_predictive <- function(x_new, x, y, noise_sigma, ...) {
   m <- nrow(x);
   n <- nrow(x_new);
   K_11 <- kernel(x, x, ...);
   K_21 <- kernel(x_new, x, ...);
   K_22 <- kernel(x_new, x_new, ...);
-  U <- chol(K_11 + diag(sigma_noise^2, m));
+  U <- chol(K_11 + diag(noise_sigma^2, m));
   U_inv <- backsolve(U, diag(m));
   K_inv <- U_inv %*% t(U_inv); 
   mu_new <- K_21 %*% K_inv %*% y;
-  U_new <- chol(K_22 - K_21 %*% K_inv %*% t(K_21) + diag(sigma_noise^2, n));
+  U_new <- chol(K_22 - K_21 %*% K_inv %*% t(K_21) + diag(noise_sigma^2, n));
   as.vector(mu_new + U_new %*% as.matrix(rnorm(n)))
 }
 ```
@@ -88,10 +88,10 @@ sample <- function(...) {
 }
 
 samples <- model %>%
-  spread_draws(sigma_noise, sigma_process, ell_process) %>%
-  mutate(curve = pmap(list(sigma_noise = sigma_noise,
-                           sigma_process = sigma_process,
-                           ell_process = ell_process), sample))
+  spread_draws(noise_sigma, process_sigma, process_ell) %>%
+  mutate(curve = pmap(list(noise_sigma = noise_sigma,
+                           process_sigma = process_sigma,
+                           process_ell = process_ell), sample))
 ```
 
 ```{r}
