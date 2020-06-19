@@ -16,13 +16,10 @@ set.seed(42)
 ```
 
 ```{r}
-url <- 'https://github.com/mattiasvillani/AdvBayesLearnCourse/raw/master/Labs/LidarData.dat'
-data <- readr::read_table(url, col_types = list(LogRatio = 'd', Distance = 'd')) %>%
-  transmute(x = (Distance - min(Distance)) / diff(range(Distance)),
-            y = LogRatio)
-```
-
-```{r}
+data(lidar, package = 'SemiPar')
+data <- lidar %>%
+  transmute(x = (range - min(range)) / diff(range(range)),
+            y = logratio)
 data %>%
   ggplot(aes(x, y)) +
   geom_point(size = 1)
