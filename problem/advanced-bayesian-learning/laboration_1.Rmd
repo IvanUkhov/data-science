@@ -4,6 +4,7 @@ output: html_document
 ---
 
 ```{r, message = FALSE}
+library(SemiPar)
 library(rstan)
 library(tidybayes)
 library(tidyverse)
@@ -16,7 +17,7 @@ set.seed(42)
 ```
 
 ```{r}
-data(lidar, package = 'SemiPar')
+data(lidar)
 data <- lidar %>%
   transmute(x = (range - min(range)) / diff(range(range)),
             y = logratio)
