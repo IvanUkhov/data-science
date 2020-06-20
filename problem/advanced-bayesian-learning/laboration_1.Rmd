@@ -51,7 +51,7 @@ model %>%
                                         'ell_process')),
          name = fct_rev(name)) %>%
   ggplot(aes(value, name)) +
-  stat_pointintervalh() +
+  stat_pointinterval() +
   coord_cartesian(xlim = c(0, 2)) +
   scale_x_continuous(breaks = seq(0, 2, by = 0.2)) +
   theme(axis.title.x = element_blank(),
@@ -139,7 +139,7 @@ model %>%
                                         'ell_process')),
          name = fct_rev(name)) %>%
   ggplot(aes(value, name)) +
-  stat_pointintervalh() +
+  stat_pointinterval() +
   coord_cartesian(xlim = c(-10, 5)) +
   scale_x_continuous(breaks = seq(-10, 5, by = 1)) +
   theme(axis.title.x = element_blank(),
