@@ -5,6 +5,7 @@ output: html_document
 
 ```{r, message = FALSE}
 library(SemiPar)
+library(invgamma)
 library(rstan)
 library(tidybayes)
 library(tidyverse)
@@ -27,6 +28,13 @@ data %>%
 ```
 
 # Homoscedastic
+
+```{r}
+tibble(x = seq(0.01, 5, by = 0.01)) %>%
+  mutate(y = dinvgamma(x, 1, 1)) %>%
+  ggplot(aes(x, y)) +
+  geom_line()
+```
 
 ```{r}
 if (!file.exists('model_1.1.RData')) {
@@ -148,8 +156,9 @@ model %>%
 
 ```{r}
 posterior_predictive <- function(x_new, alpha_noise, beta_noise) {
+  n <- nrow(x_new);
   sigma_noise <- sqrt(exp(alpha_noise + x_new %*% beta_noise));
-  rnorm(nrow(x_new), 0, sigma_noise)
+  rnorm(n, sd = sigma_noise)
 }
 
 posterior_predictive_map <- function(...) {

@@ -26,8 +26,8 @@ model {
   matrix[m, m] L = cholesky_decompose(add_diag(K, exp(alpha_noise + x_ * beta_noise)));
 
   y ~ multi_normal_cholesky(mu, L);
-  alpha_noise ~ normal(0, 1);
+  alpha_noise ~ normal(-1, 1);
   beta_noise ~ normal(0, 1);
   sigma_process ~ normal(0, 1);
-  ell_process ~ inv_gamma(5, 5);
+  ell_process ~ inv_gamma(1, 1);
 }

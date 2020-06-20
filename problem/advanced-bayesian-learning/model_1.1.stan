@@ -23,5 +23,5 @@ model {
   y ~ multi_normal_cholesky(mu, L);
   sigma_noise ~ normal(0, 1);
   sigma_process ~ normal(0, 1);
-  ell_process ~ inv_gamma(5, 5);
+  ell_process ~ inv_gamma(1, 1);
 }
