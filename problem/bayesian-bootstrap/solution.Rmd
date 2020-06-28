@@ -1,0 +1,26 @@
+---
+title: Bayesian bootstrap
+output: html_notebook
+---
+
+```{r, message = FALSE}
+library(MCMCpack)
+library(tidyverse)
+
+set.seed(42)
+```
+
+# Prior
+
+```{r, warning = FALSE}
+n <- 1000
+alpha <- rep(0.01, 3)
+
+rdirichlet(n, alpha) %>%
+  as_tibble() %>%
+  pivot_longer(everything()) %>%
+  ggplot(aes(value)) +
+  geom_histogram(bins = 30) +
+  facet_wrap(vars(name))
+```
+
