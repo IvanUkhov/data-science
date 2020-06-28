@@ -2,4 +2,4 @@
 
 ## References
 
-* [Advanced Bayesian learning](https://github.com/mattiasvillani/AdvBayesLearnCourse)
+* [Advanced Bayesian learning](https://github.com/mattiasvillani/AdvBayesLearnCourse) (Mattias Villani)
