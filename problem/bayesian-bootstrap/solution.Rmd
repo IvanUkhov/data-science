@@ -7,20 +7,27 @@ output: html_notebook
 library(MCMCpack)
 library(tidyverse)
 
+theme_set(theme_minimal())
 set.seed(42)
 ```
 
 # Prior
 
-```{r, warning = FALSE}
+```{r, fig.width = 3, fig.asp = 1}
 n <- 1000
 alpha <- rep(0.01, 3)
+data <- rdirichlet(n, alpha)
+colnames(data) <- c('a', 'b', 'c')
+data <- as_tibble(data)
 
-rdirichlet(n, alpha) %>%
-  as_tibble() %>%
-  pivot_longer(everything()) %>%
-  ggplot(aes(value)) +
-  geom_histogram(bins = 30) +
-  facet_wrap(vars(name))
+data %>%
+  transmute(x = 1 / 2 * (a + 2 * b),
+            y = sqrt(3) / 2 * a) %>%
+  ggplot(aes(x, y)) +
+  geom_point(alpha = 0.2) +
+  theme(axis.text.x = element_blank(),
+        axis.text.y = element_blank(),
+        axis.title.x = element_blank(),
+        axis.title.y = element_blank())
 ```
 
