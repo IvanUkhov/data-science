@@ -1,0 +1,123 @@
+---
+title: Weakly informative prior
+output: html_document
+---
+
+```{r}
+library(bayesplot)
+library(rstan)
+library(tidybayes)
+library(tidyverse)
+
+options(mc.cores = parallel::detectCores())
+rstan_options(auto_write = TRUE)
+
+theme_set(theme_minimal())
+```
+
+```{r}
+set.seed(689934)
+
+alpha <- 1
+beta <- -0.25
+sigma <- 1
+
+n <- 5
+x <- runif(n, 0, 2)
+y <- rnorm(n, beta * x + alpha, sigma)
+
+data <- list(n = n, x = x, y = y)
+```
+
+# Poorly informed regression
+
+```{r}
+fit_2 <- stan(file = 'model_1.stan',
+              data = data,
+              iter = 11000,
+              warmup = 1000,
+              chains = 1,
+              seed = 483892929,
+              refresh = 11000)
+```
+
+```{r}
+fit_1
+```
+
+```{r}
+mcmc_scatter(fit_1, c('alpha', 'beta'), np = nuts_params(fit_1)) +
+  coord_cartesian(xlim = c(-10, 10),
+                  ylim = c(-10, 10))
+```
+
+> Although flat priors are often motivated as being “non-informative,” they are
+> actually quite informative and pull the posterior towards extreme values that
+> can bias our inferences.
+
+> The real issue is that these diffuse priors are incoherent with our actual
+> prior beliefs. For example, basic physical and economic constraints limit the
+> reasonable values of our parameters, and the linear model isn’t even valid for
+> negative parameter values! Diffuse priors pull the posterior towards these
+> extreme values, conflicting with even the most basic prior information.
+
+# Weakly informed regression
+
+> Weakly informative priors introduce scale information to regularize
+> inferences.
+
+
+```{r}
+fit_2 <- stan(file = 'model_2.stan',
+              data = data,
+              iter = 11000,
+              warmup = 1000,
+              chains = 1,
+              seed = 483892929,
+              refresh = 11000)
+```
+
+```{r}
+fit_2
+```
+
+```{r}
+mcmc_scatter(fit_2, c('alpha', 'beta'), np = nuts_params(fit_2))
+```
+
+```{r}
+ppc <- function(fit) {
+  fit %>%
+  spread_draws(c(alpha, beta, sigma)) %>%
+  sample_n(1000) %>%
+  mutate(curve = pmap(list(alpha, beta, sigma),
+                      function(alpha, beta, sigma) {
+                        tibble(x = seq(0, 2, length.out = 21)) %>%
+                          mutate(y = alpha + beta * x + rnorm(21, sd = sigma))
+                      })) %>%
+  select(.draw, curve) %>%
+  unnest(curve) %>%
+  group_by(x) %>%
+  mean_qi() %>%
+  ggplot(aes(x, y)) +
+  geom_ribbon(aes(ymin = .lower, ymax = .upper), alpha = 0.2) +
+  geom_point(data = tibble(x = data$x, y = data$y), size = 2)
+}
+
+ppc(fit_2)
+```
+
+```{r}
+fit_3 <- stan(file = 'model_3.stan',
+              data = data,
+              iter = 11000,
+              warmup = 1000,
+              chains = 1,
+              seed = 483892929,
+              refresh = 11000)
+```
+
+```{r}
+ppc(fit_3)
+```
+
