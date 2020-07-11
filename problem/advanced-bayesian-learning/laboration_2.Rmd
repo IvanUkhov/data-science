@@ -1,0 +1,23 @@
+---
+title: 'Lobaration 2'
+output: html_document
+---
+
+```{r, message = FALSE}
+library(tidyverse)
+
+theme_set(theme_minimal())
+```
+
+```{r}
+url <- 'https://raw.githubusercontent.com/mattiasvillani/AdvBayesLearnCourse/master/Labs/GalaxyData.dat'
+data <- readr::read_table(url, col_names = c('Velocity'), col_types = list(Velocity = 'd'))
+```
+
+```{r}
+data %>%
+  ggplot(aes(Velocity)) +
+  stat_ecdf() +
+  labs(y = 'Empirical CDF')
+```
+
