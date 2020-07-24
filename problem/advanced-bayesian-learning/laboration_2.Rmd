@@ -21,3 +21,25 @@ data %>%
   labs(y = 'Empirical CDF')
 ```
 
+```{r}
+set.seed(42)
+
+cdf <- function(data) {
+  data %>%
+    arrange(x) %>%
+    mutate(p = cumsum(p)) %>%
+    ggplot(aes(x, p)) +
+    geom_line() +
+    labs(y = 'Sample CDF')
+}
+
+prior_stick_breaking <- function(n, alpha, mu = 20, sigma = 3) {
+  x <- rnorm(n, mean = mu, sd = sigma)
+  v <- rbeta(n, shape1 = 1, shape2 = alpha)
+  w <- cumprod(1 - c(0, head(v, -1)))
+  tibble(x = x, p = v * w)
+}
+
+cdf(prior_stick_breaking(n = 10000, alpha = 10))
+```
+
