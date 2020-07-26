@@ -35,13 +35,13 @@ plot_cdf <- function(data) {
 
 sample_prior <- function(n, alpha, mu = 20, sigma = 3) {
   x <- rnorm(n, mean = mu, sd = sigma)
-  v <- rbeta(n, shape1 = 1, shape2 = alpha)
-  w <- cumprod(1 - c(0, head(v, -1)))
+  v <- c(rbeta(n - 1, shape1 = 1, shape2 = alpha), 1)
+  w <- c(1, cumprod(1 - head(v, -1)))
   tibble(x = x, p = v * w)
 }
 
 tibble(alpha = c(1, 10, 100)) %>%
-  mutate(data = map(alpha, ~ sample_prior(n = 10000, .x))) %>%
+  mutate(data = map(alpha, ~ sample_prior(n = 10000, alpha = .x))) %>%
   unnest(data) %>%
   mutate(alpha = str_c('alpha = ', alpha)) %>%
   group_by(alpha) %>%
