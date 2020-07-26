@@ -22,8 +22,6 @@ data %>%
 ```
 
 ```{r}
-set.seed(42)
-
 plot_distribution <- function(data) {
   data %>%
     arrange(x) %>%
@@ -31,6 +29,14 @@ plot_distribution <- function(data) {
     ggplot(aes(x, p)) +
     geom_line() +
     labs(x = 'Velocity', y = 'Sample CDF')
+}
+
+posterior_measure <- function(volume, x) {
+  normalized <- function(n) {
+    i <- rbernoulli(n, volume / (volume + length(x)))
+    i * rnorm(n, 20, 3) + (1 - i) * sample(x, n, replace = TRUE)
+  }
+  list(normalized = normalized, volume = volume + length(x))
 }
 
 prior_measure <- function(volume) {
@@ -44,9 +50,14 @@ sample_distribution <- function(n, alpha) {
   w <- c(1, cumprod(1 - head(v, -1)))
   tibble(x = x, p = v * w)
 }
+```
+
+```{r}
+set.seed(42)
 
 tibble(volume = c(1, 10, 100)) %>%
-  mutate(data = map(volume, ~ sample_distribution(10000, prior_measure(.x)))) %>%
+  mutate(data = map(volume, ~ sample_distribution(n = 10000,
+                                                  alpha = prior_measure(.x)))) %>%
   unnest(data) %>%
   mutate(volume = str_c('volume = ', volume)) %>%
   group_by(volume) %>%
@@ -55,7 +66,14 @@ tibble(volume = c(1, 10, 100)) %>%
 ```
 
 ```{r}
-sample_posterior <- function() {
-}
-```
+set.seed(42)
 
+tibble(volume = c(1, 10, 100)) %>%
+  mutate(data = map(volume, ~ sample_distribution(n = 10000,
+                                                  alpha = posterior_measure(.x, data$Velocity)))) %>%
+  unnest(data) %>%
+  mutate(volume = str_c('volume = ', volume)) %>%
+  group_by(volume) %>%
+  plot_distribution() +
+  facet_wrap(vars(volume), ncol = 1)
+```
