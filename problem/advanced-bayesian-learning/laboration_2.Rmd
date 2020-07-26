@@ -24,7 +24,7 @@ data %>%
 ```{r}
 set.seed(42)
 
-plot_cdf <- function(data) {
+plot_distribution <- function(data) {
   data %>%
     arrange(x) %>%
     mutate(p = cumsum(p)) %>%
@@ -33,19 +33,29 @@ plot_cdf <- function(data) {
     labs(x = 'Velocity', y = 'Sample CDF')
 }
 
-sample_prior <- function(n, alpha, mu = 20, sigma = 3) {
-  x <- rnorm(n, mean = mu, sd = sigma)
-  v <- c(rbeta(n - 1, shape1 = 1, shape2 = alpha), 1)
+prior_measure <- function(volume) {
+  normalized <- function(n) rnorm(n, 20, 3)
+  list(normalized = normalized, volume = volume)
+}
+
+sample_distribution <- function(n, alpha) {
+  x <- alpha$normalized(n)
+  v <- c(rbeta(n - 1, shape1 = 1, shape2 = alpha$volume), 1)
   w <- c(1, cumprod(1 - head(v, -1)))
   tibble(x = x, p = v * w)
 }
 
-tibble(alpha = c(1, 10, 100)) %>%
-  mutate(data = map(alpha, ~ sample_prior(n = 10000, alpha = .x))) %>%
+tibble(volume = c(1, 10, 100)) %>%
+  mutate(data = map(volume, ~ sample_distribution(10000, prior_measure(.x)))) %>%
   unnest(data) %>%
-  mutate(alpha = str_c('alpha = ', alpha)) %>%
-  group_by(alpha) %>%
-  plot_cdf() +
-  facet_wrap(vars(alpha), ncol = 1)
+  mutate(volume = str_c('volume = ', volume)) %>%
+  group_by(volume) %>%
+  plot_distribution() +
+  facet_wrap(vars(volume), ncol = 1)
+```
+
+```{r}
+sample_posterior <- function() {
+}
 ```
 
