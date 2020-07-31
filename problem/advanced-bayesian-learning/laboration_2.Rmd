@@ -32,15 +32,16 @@ plot_distribution <- function(data) {
 }
 
 posterior_measure <- function(volume, x) {
+  prior <- prior_measure(volume)
   normalized <- function(n) {
-    i <- rbernoulli(n, volume / (volume + length(x)))
-    i * rnorm(n, 20, 3) + (1 - i) * sample(x, n, replace = TRUE)
+    i <- rbernoulli(n, p = volume / (volume + length(x)))
+    i * prior$normalized(n) + (1 - i) * sample(x, n, replace = TRUE)
   }
   list(normalized = normalized, volume = volume + length(x))
 }
 
 prior_measure <- function(volume) {
-  normalized <- function(n) rnorm(n, 20, 3)
+  normalized <- function(n) rnorm(n, mean = 20, sd = 3)
   list(normalized = normalized, volume = volume)
 }
 
