@@ -30,8 +30,8 @@ fit %>%
   rstan::extract() %>%
   as_tibble() %>%
   sample_n(10) %>%
-  mutate(x = pmap(list(mu, sigma, lambda, p, q),
-                  function(...)  rsgt(3000, ...))) %>%
+  mutate(x = pmap(list(mu, sigma, lambda, q),
+                  function(...)  rsgt(3000, p = 2, ...))) %>%
   transmute(.draw = row_number(), x = x) %>%
   unnest(x) %>%
   ggplot(aes(x, color = factor(.draw))) +
