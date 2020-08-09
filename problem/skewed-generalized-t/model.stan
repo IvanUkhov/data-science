@@ -35,7 +35,7 @@ functions {
 data {
   int<lower = 0> n;
   vector[n] y;
-  int prior;
+  int prior_only;
 }
 
 parameters {
@@ -55,7 +55,7 @@ model {
   sigma ~ student_t(3, 0, 1);
   beta ~ beta(2, 2);
   q ~ gamma(2, 2 * 0.1);
-  if (prior) {
+  if (!prior_only) {
     target += skewed_generalized_t_lpdf(y | mu, sigma, lambda, 2, q);
   }
 }
