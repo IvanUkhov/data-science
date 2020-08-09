@@ -1,0 +1,17 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+```{r}
+library(bayesplot)
+library(rstan)
+
+options(mc.cores = parallel::detectCores())
+```
+
+```{r}
+model <- stan_model('aki.stan')
+fit <- sampling(model, data = list(n = 2, y = c(0, 0), prior = 0))
+```
+
