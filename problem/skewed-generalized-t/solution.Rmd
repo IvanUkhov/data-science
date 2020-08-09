@@ -1,17 +1,41 @@
 ---
-title: "R Notebook"
+title: 'Skewed generalized t distribution'
 output: html_notebook
 ---
 
 ```{r}
 library(bayesplot)
 library(rstan)
+library(sgt)
+library(tidyverse)
 
 options(mc.cores = parallel::detectCores())
+rstan_options(auto_write = TRUE)
+theme_set(theme_minimal())
 ```
 
 ```{r}
-model <- stan_model('aki.stan')
-fit <- sampling(model, data = list(n = 2, y = c(0, 0), prior = 0))
+model <- stan_model('model.stan')
+```
+
+# Prior predictive check
+
+```{r}
+y <- rep(0, 10)
+fit <- sampling(model, data = list(n = length(y), y = y, prior = 0))
+```
+
+```{r}
+fit %>%
+  rstan::extract() %>%
+  as_tibble() %>%
+  sample_n(10) %>%
+  mutate(x = pmap(list(mu, sigma, lambda, p, q),
+                  function(...)  rsgt(3000, ...))) %>%
+  transmute(.draw = row_number(), x = x) %>%
+  unnest(x) %>%
+  ggplot(aes(x, color = factor(.draw))) +
+  geom_density() +
+  theme(legend.position = 'none')
 ```
 

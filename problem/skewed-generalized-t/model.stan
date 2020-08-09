@@ -1,3 +1,6 @@
+// Reference:
+// https://discourse.mc-stan.org/t/ideas-for-modeling-systematically-skewed-outliers/636
+
 functions {
   real skewed_generalized_t_lpdf(vector y, real mu, real sigma, real lambda, real p, real q) {
     // Reference:
@@ -38,17 +41,21 @@ data {
 parameters {
   real mu;
   real<lower = 0> sigma;
-  real<lower = -0.99, upper = 0> lambda;
-  real<lower = 1, upper = 10> p;
-  real<lower = 3.0 / p, upper = p * 50> q;
+  real<lower = 0, upper = 1> beta;
+  real<lower = 1.5 / 2> q;
+}
+
+transformed parameters {
+  real<lower = -1, upper = 1> lambda;
+  lambda = 2 * beta - 1;
 }
 
 model {
-  mu ~ normal(0, 9.0 / sqrt(n));
-  lambda ~ normal(0, 0.5);
-  p ~ lognormal(log(2), 1);
-  q ~ gamma(2, 0.1);
+  mu ~ student_t(3, 0, 1);
+  sigma ~ student_t(3, 0, 1);
+  beta ~ beta(2, 2);
+  q ~ gamma(2, 2 * 0.1);
   if (prior) {
-    target += skewed_generalized_t_lpdf(y | mu, sigma, lambda, p, q);
+    target += skewed_generalized_t_lpdf(y | mu, sigma, lambda, 2, q);
   }
 }
