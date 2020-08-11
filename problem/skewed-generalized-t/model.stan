@@ -8,6 +8,7 @@ functions {
     int n;
     real lbeta_1;
     real lbeta_2;
+    real lbeta_3;
     real v;
     real m;
     real delta;
@@ -16,7 +17,8 @@ functions {
     n = dims(y)[1];
     lbeta_1 = lbeta(1.0 / p, q);
     lbeta_2 = lbeta(2.0 / p, q - 1.0 / p);
-    v = q^(-1.0 / p) * ((3 * lambda^2 + 1) * exp(lbeta(3.0 / p, q - 2.0 / p) - lbeta_1) - 4 * lambda^2 * exp(lbeta_2 - lbeta_1)^2)^(-0.5);
+    lbeta_3 = lbeta(3.0 / p, q - 2.0 / p);
+    v = q^(-1.0 / p) * ((3 * lambda^2 + 1) * exp(lbeta_3 - lbeta_1) - 4 * lambda^2 * exp(lbeta_2 - lbeta_1)^2)^(-0.5);
     m = 2 * v * sigma * lambda * q^(1.0 / p) * exp(lbeta_2 - lbeta_1);
     result = n * (log(p) - log(2 * v * sigma * q^(1.0 / p)) - lbeta_1);
     for (i in 1:n) {
@@ -42,7 +44,7 @@ parameters {
   real mu;
   real<lower = 0> sigma;
   real<lower = 0, upper = 1> beta;
-  real<lower = 1.5 / 2> q;
+  real<lower = 2.0 / 2> q;
 }
 
 transformed parameters {
