@@ -21,7 +21,30 @@ data %>%
   labs(y = 'Empirical CDF')
 ```
 
+# Direct prior
+
 ```{r}
+prior_measure <- function(volume) {
+  sample_normalized <- function(n) rnorm(n, mean = 20, sd = 3)
+  list(sample_normalized = sample_normalized, volume = volume)
+}
+
+posterior_measure <- function(x, volume) {
+  prior <- prior_measure(volume)
+  sample_normalized <- function(n) {
+    i <- rbernoulli(n, p = volume / (volume + length(x)))
+    i * prior$sample_normalized(n) + (1 - i) * sample(x, n, replace = TRUE)
+  }
+  list(sample_normalized = sample_normalized, volume = volume + length(x))
+}
+
+sample_distribution <- function(n, alpha) {
+  x <- alpha$sample_normalized(n)
+  v <- c(rbeta(n - 1, shape1 = 1, shape2 = alpha$volume), 1)
+  w <- c(1, cumprod(1 - head(v, -1)))
+  tibble(x = x, p = v * w)
+}
+
 plot_distribution <- function(data) {
   data %>%
     arrange(x) %>%
@@ -29,27 +52,6 @@ plot_distribution <- function(data) {
     ggplot(aes(x, p)) +
     geom_line() +
     labs(x = 'Velocity', y = 'Sample CDF')
-}
-
-posterior_measure <- function(volume, x) {
-  prior <- prior_measure(volume)
-  normalized <- function(n) {
-    i <- rbernoulli(n, p = volume / (volume + length(x)))
-    i * prior$normalized(n) + (1 - i) * sample(x, n, replace = TRUE)
-  }
-  list(normalized = normalized, volume = volume + length(x))
-}
-
-prior_measure <- function(volume) {
-  normalized <- function(n) rnorm(n, mean = 20, sd = 3)
-  list(normalized = normalized, volume = volume)
-}
-
-sample_distribution <- function(n, alpha) {
-  x <- alpha$normalized(n)
-  v <- c(rbeta(n - 1, shape1 = 1, shape2 = alpha$volume), 1)
-  w <- c(1, cumprod(1 - head(v, -1)))
-  tibble(x = x, p = v * w)
 }
 ```
 
@@ -71,10 +73,58 @@ set.seed(42)
 
 tibble(volume = c(1, 10, 100)) %>%
   mutate(data = map(volume, ~ sample_distribution(n = 10000,
-                                                  alpha = posterior_measure(.x, data$Velocity)))) %>%
+                                                  alpha = posterior_measure(data$Velocity, .x)))) %>%
   unnest(data) %>%
   mutate(volume = str_c('volume = ', volume)) %>%
   group_by(volume) %>%
   plot_distribution() +
   facet_wrap(vars(volume), ncol = 1)
 ```
+
+# Mixing prior
+
+```{r}
+theta_prior_measure <- function(mu0 = 0, n0 = 1, alpha0 = 1, beta0 = 0.5) {
+  sample <- function(n) {
+    tau <- rgamma(n, alpha0, beta0)
+    mu <- rnorm(n, mu0, n0 * tau)
+    list(mu = mu, tau = tau)
+  }
+  list(sample = sample)
+}
+
+theta_posterior_measure <- function(x, mu0 = 0, n0 = 1, alpha0 = 1, beta0 = 0.5) {
+  n1 <- length(x)
+  mu1 <- mean(x)
+  s1 <- sqrt((n1 - 1) / n1) * sd(x)
+  theta_prior_measure(
+    mu0 = n0 * mu0 / (n0 + n1) + n1 * mu1 / (n0 + n1),
+    n0 = n0 + n1,
+    alpha0 = alpha0 + n1 / 2,
+    beta0 = beta0 + 0.5 * (n0 * n1 * (mu1 - mu0)^2 / (n0 + n1) + n1 * s1^2)
+  )
+}
+```
+
+```{r}
+theta_prior_measure(mu0 = mean(data$Velocity))$sample(1000) %>%
+  as_tibble() %>%
+  ggplot() +
+  geom_density(aes(mu))
+```
+
+```{r}
+theta_posterior_measure(data$Velocity, mu0 = mean(data$Velocity))$sample(1000) %>%
+  as_tibble() %>%
+  ggplot() +
+  geom_density(aes(mu))
+```
+
+```{r}
+n <- nrow(data)
+m <- 50
+
+p <- rep(1 / m, m)
+k <- sample(seq(m), n, replace = TRUE)
+```
+
