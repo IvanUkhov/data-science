@@ -55,8 +55,8 @@ plot_distribution <- function(sample, reference) {
     arrange(x) %>%
     mutate(p = cumsum(p))
   ggplot() +
-    stat_ecdf(data = reference, mapping = aes(x), color = 'gray70') +
-    geom_line(data = sample, mapping = aes(x, p)) +
+    geom_line(data = sample, mapping = aes(x, p), color = 'gray70') +
+    stat_ecdf(data = reference, mapping = aes(x)) +
     labs(x = 'Velocity', y = 'Sample CDF')
 }
 ```
