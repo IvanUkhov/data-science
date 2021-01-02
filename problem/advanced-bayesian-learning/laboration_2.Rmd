@@ -180,8 +180,42 @@ for(i in 1:L) {
 ```
 
 ```{r}
-tibble(count = sapply(tail(draws, L / 2), function(draw) length(unique(draw$k)))) %>%
-  ggplot(aes(count)) +
-  geom_density()
+tibble(value = sapply(draws, function(draw) length(unique(draw$k)))) %>%
+  mutate(draw = row_number()) %>%
+  ggplot(aes(draw, value)) +
+  geom_line(size = 0.1)
 ```
 
+```{r}
+set.seed(42)
+
+P2_distribution <- function(draw, grid) {
+  bind_cols(draw$theta, tibble(p = draw$p)) %>%
+    mutate(.component = row_number()) %>%
+    select(.component, everything()) %>%
+    mutate(data = map2(mu, tau, function(mu, tau) {
+                                  tibble(x = grid,
+                                         y = pnorm(grid, mean = mu, sd = sqrt(1 / tau)))
+                                })) %>%
+    unnest(data) %>%
+    group_by(x) %>%
+    summarize(y = sum(p * y), .groups = 'drop')
+}
+
+predictive_check <- function(draws, reference, size = 1000) {
+  grid <- seq(min(reference$x), to = max(reference$x), length.out = size)
+  sample <- sapply(1:length(draws),
+                   simplify = FALSE,
+                   function(i) {
+                     P2_distribution(draws[[i]], grid) %>%
+                       mutate(.draw = i) %>%
+                       select(.draw, everything())
+                   }) %>%
+    bind_rows()
+  ggplot() +
+    stat_ecdf(data = reference, mapping = aes(x)) +
+    geom_line(data = sample, mapping = aes(x, y, group = .draw), alpha = 0.1)
+}
+
+predictive_check(sample(tail(draws, L / 2), 10), data)
+```
