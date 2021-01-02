@@ -110,9 +110,12 @@ posterior_measure_theta <- function(x, mu0 = 0, n0 = 1, alpha0 = 1, beta0 = 0.5)
 }
 
 update_k <- function(x, state) {
-  theta <- state$theta[state$k, ]
-  p <- state$p[state$k] * density_x(x, theta)
-  p <- p / sum(p)
+  p <- rep(state$p, state$n)
+  x <- rep(x, each = state$m)
+  theta <- state$theta %>% slice(rep(seq(state$m), state$n))
+  p <- matrix(p * density_x(x, theta), nrow = state$m, ncol = state$n)
+  p <- p / colSums(p)
+  apply(p, 2, function(p)  sample(seq(state$m), 1, prob = p))
 }
 ```
 
@@ -132,11 +135,12 @@ posterior_measure_theta(data$Velocity, mu0 = mean(data$Velocity))$sample(1000) %
 ```{r}
 set.seed(42)
 
-n <- nrow(data)
 m <- 50
+n <- nrow(data)
 
 state <- list(
   m = m,
+  n = n,
   p = rep(1 / m, m),
   k = sample(seq(m), n, replace = TRUE),
   theta = prior_measure_theta(mu0 = mean(data$Velocity))$sample(m)
