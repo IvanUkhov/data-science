@@ -161,18 +161,26 @@ sample_P0_posterior(1000, data$Velocity) %>%
 set.seed(42)
 
 m <- 50
-n <- nrow(data)
-L <- 100
+L <- 1000
 
 state <- list(
   p = rep(1 / m, m),
-  k = sample(1:m, n, replace = TRUE),
+  k = sample(1:m, nrow(data), replace = TRUE),
   theta = sample_P0_prior(m, mu0 = mean(data$Velocity))
 )
 
+draws <- vector('list', L)
 for(i in 1:L) {
   state$k <- update_k(data$Velocity, state)
   state$p <- update_p(data$Velocity, state)
   state$theta <- update_theta(data$Velocity, state)
+  draws[[i]] <- state
 }
 ```
+
+```{r}
+tibble(count = sapply(tail(draws, L / 2), function(draw) length(unique(draw$k)))) %>%
+  ggplot(aes(count)) +
+  geom_density()
+```
+
