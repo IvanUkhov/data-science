@@ -31,21 +31,21 @@ stick_break <- function(l, alpha, beta) {
 }
 
 nu_prior <- function(nu0 = 1) {
-  P0.sample <- function(l) rnorm(l, mean = 20, sd = 3)
-  list(P0.sample = P0.sample, nu0 = nu0)
+  sample_P0 <- function(l) rnorm(l, mean = 20, sd = 3)
+  list(sample_P0 = sample_P0, nu0 = nu0)
 }
 
 nu_posterior <- function(x, nu0 = 1) {
   prior <- nu_prior(nu0)
-  P0.sample <- function(l) {
+  sample_P0 <- function(l) {
     i <- rbernoulli(l, p = nu0 / (nu0 + length(x)))
-    i * prior$P0.sample(l) + (1 - i) * sample(x, l, replace = TRUE)
+    i * prior$sample_P0(l) + (1 - i) * sample(x, l, replace = TRUE)
   }
-  list(P0.sample = P0.sample, nu0 = nu0 + length(x))
+  list(sample_P0 = sample_P0, nu0 = nu0 + length(x))
 }
 
-nu_sample <- function(l, nu) {
-  x <- nu$P0.sample(l)
+sample_nu <- function(l, nu) {
+  x <- nu$sample_P0(l)
   p <- stick_break(l, 1, nu$nu0)
   tibble(x = x, p = p)
 }
@@ -64,7 +64,7 @@ plot_distribution <- function(data) {
 set.seed(42)
 
 tibble(nu0 = c(1, 10, 100)) %>%
-  mutate(data = map(nu0, ~ nu_sample(l = 10000, nu = nu_prior(.x)))) %>%
+  mutate(data = map(nu0, ~ sample_nu(l = 10000, nu = nu_prior(.x)))) %>%
   unnest(data) %>%
   mutate(nu0 = str_c('Volume = ', nu0)) %>%
   group_by(nu0) %>%
@@ -76,7 +76,7 @@ tibble(nu0 = c(1, 10, 100)) %>%
 set.seed(42)
 
 tibble(nu0 = c(1, 10, 100)) %>%
-  mutate(data = map(nu0, ~ nu_sample(l = 10000,
+  mutate(data = map(nu0, ~ sample_nu(l = 10000,
                                      nu = nu_posterior(data$Velocity, .x)))) %>%
   unnest(data) %>%
   mutate(nu0 = str_c('Volume = ', nu0)) %>%
@@ -88,20 +88,18 @@ tibble(nu0 = c(1, 10, 100)) %>%
 # Mixing prior
 
 ```{r}
-P0_prior <- function(mu0 = 0, n0 = 1, alpha0 = 1, beta0 = 0.5) {
-  sample <- function(l) {
-    tau <- rgamma(l, alpha0, beta0)
-    mu <- rnorm(l, mu0, n0 * tau)
-    tibble(mu = mu, tau = tau)
-  }
-  list(sample = sample)
+sample_P0_prior <- function(l, mu0 = 0, n0 = 1, alpha0 = 1, beta0 = 0.5) {
+  tau <- rgamma(l, alpha0, beta0)
+  mu <- rnorm(l, mu0, n0 * tau)
+  tibble(mu = mu, tau = tau)
 }
 
-P0_posterior <- function(x, mu0 = 0, n0 = 1, alpha0 = 1, beta0 = 0.5) {
+sample_P0_posterior <- function(l, x, mu0 = 0, n0 = 1, alpha0 = 1, beta0 = 0.5) {
   n1 <- length(x)
   mu1 <- mean(x)
   s1 <- sqrt((n1 - 1) / n1) * sd(x)
-  P0_prior(
+  sample_P0_prior(
+    l = l,
     mu0 = n0 * mu0 / (n0 + n1) + n1 * mu1 / (n0 + n1),
     n0 = n0 + n1,
     alpha0 = alpha0 + n1 / 2,
@@ -109,7 +107,7 @@ P0_posterior <- function(x, mu0 = 0, n0 = 1, alpha0 = 1, beta0 = 0.5) {
   )
 }
 
-P1_density <- function(x, theta) {
+evaluate_P1 <- function(x, theta) {
   pnorm(x, theta$mu, sqrt(1 / theta$tau))
 }
 
@@ -117,7 +115,7 @@ update_k <- function(x, state) {
   p <- rep(state$p, state$n)
   x <- rep(x, each = state$m)
   theta <- state$theta %>% slice(rep(seq(state$m), state$n))
-  p <- matrix(p * P1_density(x, theta), nrow = state$m, ncol = state$n)
+  p <- matrix(p * evaluate_P1(x, theta), nrow = state$m, ncol = state$n)
   p <- p / colSums(p)
   apply(p, 2, function(p) sample(seq(state$m), 1, prob = p))
 }
@@ -132,16 +130,19 @@ update_p <- function(x, state) {
   beta <- state$nu0 + cumsum(c(n[-1], 0))
   stick_break(state$m, alpha, beta)
 }
+
+update_theta <- function(x, state) {
+}
 ```
 
 ```{r}
-P0_prior(mu0 = mean(data$Velocity))$sample(1000) %>%
+sample_P0_prior(1000, mu0 = mean(data$Velocity)) %>%
   ggplot() +
   geom_density(aes(mu))
 ```
 
 ```{r}
-P0_posterior(data$Velocity, mu0 = mean(data$Velocity))$sample(1000) %>%
+sample_P0_posterior(1000, data$Velocity, mu0 = mean(data$Velocity)) %>%
   ggplot() +
   geom_density(aes(mu))
 ```
@@ -158,9 +159,10 @@ state <- list(
   n = n,
   p = rep(1 / m, m),
   k = sample(seq(m), n, replace = TRUE),
-  theta = P0_prior(mu0 = mean(data$Velocity))$sample(m)
+  theta = sample_P0_prior(m, mu0 = mean(data$Velocity))
 )
 
-update_k(data$Velocity, state)
-update_p(data$Velocity, state)
+k <- update_k(data$Velocity, state)
+p <- update_p(data$Velocity, state)
+theta <- update_theta(data$Velocity, state)
 ```
