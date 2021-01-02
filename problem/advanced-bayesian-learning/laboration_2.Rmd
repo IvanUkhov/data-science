@@ -101,7 +101,7 @@ sample_P0_posterior <- function(l, x, mu0 = 20, n0 = 1, alpha0 = 1, beta0 = 0.5)
     s1 <- 0
   } else {
     mu1 <- mean(x)
-    s1 <- (x - mu1)^2 / n1
+    s1 <- sum((x - mu1)^2) / n1
   }
   sample_P0_prior(
     l = l,
