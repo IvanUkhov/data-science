@@ -117,27 +117,29 @@ evaluate_P1 <- function(x, theta) {
 }
 
 update_k <- function(x, state) {
-  p <- rep(state$p, state$n)
-  x <- rep(x, each = state$m)
-  theta <- state$theta %>% slice(rep(seq(state$m), state$n))
-  p <- matrix(p * evaluate_P1(x, theta), nrow = state$m, ncol = state$n)
+  m <- length(state$p)
+  n <- length(x)
+  p <- rep(state$p, n)
+  x <- rep(x, each = m)
+  theta <- state$theta %>% slice(rep(1:m, n))
+  p <- matrix(p * evaluate_P1(x, theta), nrow = m, ncol = n)
   p <- p / colSums(p)
-  apply(p, 2, function(p) sample(seq(state$m), 1, prob = p))
+  apply(p, 2, function(p) sample(1:m, 1, prob = p))
 }
 
-update_p <- function(x, state) {
-  counts <- as.data.frame(table(state$k))
-  i <- counts[ , 1]
-  i <- as.numeric(levels(i))[i]
-  n <- rep(0, state$m)
-  n[i] <- counts[ , 2]
+update_p <- function(x, state, nu0 = 1) {
+  m <- length(state$p)
+  n <- rep(0, m)
+  k <- as.data.frame(table(state$k))
+  n[as.numeric(levels(k[ , 1]))[k[ , 1]]] <- k[ , 2]
   alpha <- 1 + n
-  beta <- state$nu0 + cumsum(c(n[-1], 0))
-  stick_break(state$m, alpha, beta)
+  beta <- nu0 + cumsum(c(n[-1], 0))
+  stick_break(m, alpha, beta)
 }
 
 update_theta <- function(x, state) {
-  sapply(seq(state$m), function(i) sample_P0_posterior(1, x[state$k == i]),
+  m <- length(state$p)
+  sapply(1:m, function(i) sample_P0_posterior(1, x[state$k == i]),
          simplify = FALSE) %>%
     bind_rows()
 }
@@ -160,17 +162,17 @@ set.seed(42)
 
 m <- 50
 n <- nrow(data)
+L <- 100
 
 state <- list(
-  nu0 = 1,
-  m = m,
-  n = n,
   p = rep(1 / m, m),
-  k = sample(seq(m), n, replace = TRUE),
+  k = sample(1:m, n, replace = TRUE),
   theta = sample_P0_prior(m, mu0 = mean(data$Velocity))
 )
 
-k <- update_k(data$Velocity, state)
-p <- update_p(data$Velocity, state)
-theta <- update_theta(data$Velocity, state)
+for(i in 1:L) {
+  state$k <- update_k(data$Velocity, state)
+  state$p <- update_p(data$Velocity, state)
+  state$theta <- update_theta(data$Velocity, state)
+}
 ```
