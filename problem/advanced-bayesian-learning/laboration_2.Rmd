@@ -24,24 +24,29 @@ data %>%
 # Direct prior
 
 ```{r}
+stick_break <- function(l, alpha, beta) {
+  q <- rbeta(l, shape1 = alpha, shape2 = beta)
+  q <- c(head(q, -1), 1)
+  q * c(1, cumprod(1 - head(q, -1)))
+}
+
 nu_prior <- function(nu0 = 1) {
-  P0.sample <- function(n) rnorm(n, mean = 20, sd = 3)
+  P0.sample <- function(l) rnorm(l, mean = 20, sd = 3)
   list(P0.sample = P0.sample, nu0 = nu0)
 }
 
 nu_posterior <- function(x, nu0 = 1) {
   prior <- nu_prior(nu0)
-  P0.sample <- function(n) {
-    i <- rbernoulli(n, p = nu0 / (nu0 + length(x)))
-    i * prior$P0.sample(n) + (1 - i) * sample(x, n, replace = TRUE)
+  P0.sample <- function(l) {
+    i <- rbernoulli(l, p = nu0 / (nu0 + length(x)))
+    i * prior$P0.sample(l) + (1 - i) * sample(x, l, replace = TRUE)
   }
   list(P0.sample = P0.sample, nu0 = nu0 + length(x))
 }
 
-nu_sample <- function(n, nu) {
-  x <- nu$P0.sample(n)
-  q <- c(rbeta(n - 1, shape1 = 1, shape2 = nu$nu0), 1)
-  p <- q * c(1, cumprod(1 - head(q, -1)))
+nu_sample <- function(l, nu) {
+  x <- nu$P0.sample(l)
+  p <- stick_break(l, 1, nu$nu0)
   tibble(x = x, p = p)
 }
 
@@ -59,7 +64,7 @@ plot_distribution <- function(data) {
 set.seed(42)
 
 tibble(nu0 = c(1, 10, 100)) %>%
-  mutate(data = map(nu0, ~ nu_sample(n = 10000, nu = nu_prior(.x)))) %>%
+  mutate(data = map(nu0, ~ nu_sample(l = 10000, nu = nu_prior(.x)))) %>%
   unnest(data) %>%
   mutate(nu0 = str_c('Volume = ', nu0)) %>%
   group_by(nu0) %>%
@@ -71,7 +76,7 @@ tibble(nu0 = c(1, 10, 100)) %>%
 set.seed(42)
 
 tibble(nu0 = c(1, 10, 100)) %>%
-  mutate(data = map(nu0, ~ nu_sample(n = 10000,
+  mutate(data = map(nu0, ~ nu_sample(l = 10000,
                                      nu = nu_posterior(data$Velocity, .x)))) %>%
   unnest(data) %>%
   mutate(nu0 = str_c('Volume = ', nu0)) %>%
@@ -84,9 +89,9 @@ tibble(nu0 = c(1, 10, 100)) %>%
 
 ```{r}
 P0_prior <- function(mu0 = 0, n0 = 1, alpha0 = 1, beta0 = 0.5) {
-  sample <- function(n) {
-    tau <- rgamma(n, alpha0, beta0)
-    mu <- rnorm(n, mu0, n0 * tau)
+  sample <- function(l) {
+    tau <- rgamma(l, alpha0, beta0)
+    mu <- rnorm(l, mu0, n0 * tau)
     tibble(mu = mu, tau = tau)
   }
   list(sample = sample)
@@ -123,6 +128,9 @@ update_p <- function(x, state) {
   i <- as.numeric(levels(i))[i]
   n <- rep(0, state$m)
   n[i] <- counts[ , 2]
+  alpha <- 1 + n
+  beta <- state$nu0 + cumsum(c(n[-1], 0))
+  stick_break(state$m, alpha, beta)
 }
 ```
 
@@ -145,6 +153,7 @@ m <- 50
 n <- nrow(data)
 
 state <- list(
+  nu0 = 1,
   m = m,
   n = n,
   p = rep(1 / m, m),
