@@ -96,8 +96,13 @@ sample_P0_prior <- function(l, mu0 = 0, n0 = 1, alpha0 = 1, beta0 = 0.5) {
 
 sample_P0_posterior <- function(l, x, mu0 = 0, n0 = 1, alpha0 = 1, beta0 = 0.5) {
   n1 <- length(x)
-  mu1 <- mean(x)
-  s1 <- (x - mu1)^2 / n1
+  if (n1 == 0) {
+    mu1 <- 0
+    s1 <- 0
+  } else {
+    mu1 <- mean(x)
+    s1 <- (x - mu1)^2 / n1
+  }
   sample_P0_prior(
     l = l,
     mu0 = n0 * mu0 / (n0 + n1) + n1 * mu1 / (n0 + n1),
@@ -132,6 +137,9 @@ update_p <- function(x, state) {
 }
 
 update_theta <- function(x, state) {
+  sapply(seq(state$m), function(i) sample_P0_posterior(1, x[state$k == i]),
+         simplify = FALSE) %>%
+    bind_rows()
 }
 ```
 
