@@ -30,13 +30,13 @@ stick_break <- function(l, alpha, beta) {
   q * c(1, cumprod(1 - head(q, -1)))
 }
 
-nu_prior <- function(nu0 = 1) {
-  sample_P0 <- function(l) rnorm(l, mean = 20, sd = 3)
+nu_prior <- function(nu0 = 1, mu0 = 20, sigma0 = 3) {
+  sample_P0 <- function(l) rnorm(l, mean = mu0, sd = sigma0)
   list(sample_P0 = sample_P0, nu0 = nu0)
 }
 
-nu_posterior <- function(x, nu0 = 1) {
-  prior <- nu_prior(nu0)
+nu_posterior <- function(x, nu0 = 1, mu0 = 20, sigma0 = 3) {
+  prior <- nu_prior(nu0 = nu0, mu0 = mu0, sigma0 = sigma0)
   sample_P0 <- function(l) {
     i <- rbernoulli(l, p = nu0 / (nu0 + length(x)))
     i * prior$sample_P0(l) + (1 - i) * sample(x, l, replace = TRUE)
@@ -88,13 +88,13 @@ tibble(nu0 = c(1, 10, 100)) %>%
 # Mixing prior
 
 ```{r}
-sample_P0_prior <- function(l, mu0 = 0, n0 = 1, alpha0 = 1, beta0 = 0.5) {
+sample_P0_prior <- function(l, mu0 = 20, n0 = 1, alpha0 = 1, beta0 = 0.5) {
   tau <- rgamma(l, alpha0, beta0)
   mu <- rnorm(l, mu0, n0 * tau)
   tibble(mu = mu, tau = tau)
 }
 
-sample_P0_posterior <- function(l, x, mu0 = 0, n0 = 1, alpha0 = 1, beta0 = 0.5) {
+sample_P0_posterior <- function(l, x, mu0 = 20, n0 = 1, alpha0 = 1, beta0 = 0.5) {
   n1 <- length(x)
   if (n1 == 0) {
     mu1 <- 0
@@ -144,13 +144,13 @@ update_theta <- function(x, state) {
 ```
 
 ```{r}
-sample_P0_prior(1000, mu0 = mean(data$Velocity)) %>%
+sample_P0_prior(1000) %>%
   ggplot() +
   geom_density(aes(mu))
 ```
 
 ```{r}
-sample_P0_posterior(1000, data$Velocity, mu0 = mean(data$Velocity)) %>%
+sample_P0_posterior(1000, data$Velocity) %>%
   ggplot() +
   geom_density(aes(mu))
 ```
