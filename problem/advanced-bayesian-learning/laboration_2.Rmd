@@ -11,14 +11,14 @@ theme_set(theme_minimal())
 
 ```{r}
 url <- 'https://raw.githubusercontent.com/mattiasvillani/AdvBayesLearnCourse/master/Labs/GalaxyData.dat'
-data <- readr::read_table(url, col_names = c('Velocity'), col_types = list(Velocity = 'd'))
+data <- readr::read_table(url, col_names = c('x'), col_types = list(x = 'd'))
 ```
 
 ```{r}
 data %>%
-  ggplot(aes(Velocity)) +
+  ggplot(aes(x)) +
   stat_ecdf() +
-  labs(y = 'Empirical CDF')
+  labs(x = 'Velocity', y = 'Empirical CDF')
 ```
 
 # Direct prior
@@ -50,38 +50,39 @@ sample_nu <- function(l, nu) {
   tibble(x = x, p = p)
 }
 
-plot_distribution <- function(data) {
-  data %>%
+plot_distribution <- function(sample, reference) {
+  sample <- sample %>%
     arrange(x) %>%
-    mutate(p = cumsum(p)) %>%
-    ggplot(aes(x, p)) +
-    geom_line() +
+    mutate(p = cumsum(p))
+  ggplot() +
+    stat_ecdf(data = reference, mapping = aes(x), color = 'gray70') +
+    geom_line(data = sample, mapping = aes(x, p)) +
     labs(x = 'Velocity', y = 'Sample CDF')
 }
 ```
 
-```{r}
+```{r, fig.asp = 1}
 set.seed(42)
 
 tibble(nu0 = c(1, 10, 100)) %>%
   mutate(data = map(nu0, ~ sample_nu(l = 10000, nu = nu_prior(.x)))) %>%
   unnest(data) %>%
-  mutate(nu0 = str_c('Volume = ', nu0)) %>%
+  mutate(nu0 = str_c('Prior volume = ', nu0)) %>%
   group_by(nu0) %>%
-  plot_distribution() +
+  plot_distribution(data) +
   facet_wrap(vars(nu0), ncol = 1)
 ```
 
-```{r}
+```{r, fig.asp = 1}
 set.seed(42)
 
 tibble(nu0 = c(1, 10, 100)) %>%
   mutate(data = map(nu0, ~ sample_nu(l = 10000,
-                                     nu = nu_posterior(data$Velocity, .x)))) %>%
+                                     nu = nu_posterior(data$x, .x)))) %>%
   unnest(data) %>%
-  mutate(nu0 = str_c('Volume = ', nu0)) %>%
+  mutate(nu0 = str_c('Prior volume = ', nu0)) %>%
   group_by(nu0) %>%
-  plot_distribution() +
+  plot_distribution(data) +
   facet_wrap(vars(nu0), ncol = 1)
 ```
 
@@ -152,7 +153,7 @@ sample_P0_prior(1000) %>%
 ```
 
 ```{r}
-sample_P0_posterior(1000, data$Velocity) %>%
+sample_P0_posterior(1000, data$x) %>%
   ggplot() +
   geom_density(aes(mu))
 ```
@@ -166,14 +167,14 @@ L <- 1000
 state <- list(
   p = rep(1 / m, m),
   k = sample(1:m, nrow(data), replace = TRUE),
-  theta = sample_P0_prior(m, mu0 = mean(data$Velocity))
+  theta = sample_P0_prior(m, mu0 = mean(data$x))
 )
 
 draws <- vector('list', L)
 for(i in 1:L) {
-  state$k <- update_k(data$Velocity, state)
-  state$p <- update_p(data$Velocity, state)
-  state$theta <- update_theta(data$Velocity, state)
+  state$k <- update_k(data$x, state)
+  state$p <- update_p(data$x, state)
+  state$theta <- update_theta(data$x, state)
   draws[[i]] <- state
 }
 ```
