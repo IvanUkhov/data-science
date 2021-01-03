@@ -75,7 +75,7 @@ plot_distribution <- function(sample, reference) {
   ggplot() +
     geom_reference(reference) +
     geom_line(data = sample, mapping = aes(x, p)) +
-    labs(x = 'Velocity', y = 'Sample CDF')
+    labs(x = 'Velocity', y = 'Probability')
 }
 ```
 
