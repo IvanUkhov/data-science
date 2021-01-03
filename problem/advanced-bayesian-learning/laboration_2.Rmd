@@ -89,6 +89,14 @@ tibble(nu0 = c(1, 10, 100)) %>%
 # Mixing prior
 
 ```{r}
+data %>%
+  ggplot(aes(x)) +
+  geom_dotplot(method = 'histodot', binwidth = 1, dotsize = 0.8) +
+  labs(x = 'Velocity', y = 'Observations') +
+  theme(axis.text.y = element_blank())
+```
+
+```{r}
 sample_P0_prior <- function(l, mu0 = 20, n0 = 1, alpha0 = 1, beta0 = 0.5) {
   tau <- rgamma(l, alpha0, beta0)
   mu <- rnorm(l, mu0, n0 * tau)
