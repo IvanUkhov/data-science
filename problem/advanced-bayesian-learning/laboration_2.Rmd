@@ -175,7 +175,8 @@ L <- 1000
 state <- list(
   p = rep(1 / m, m),
   k = sample(1:m, nrow(data), replace = TRUE),
-  theta = sample_P0_prior(m, mu0 = mean(data$x))
+  theta = tibble(mu = rep(mean(data$x), m),
+                 tau = rep(1 / var(data$x), m))
 )
 
 draws <- vector('list', L)
@@ -195,35 +196,53 @@ tibble(value = sapply(draws, function(draw) length(unique(draw$k)))) %>%
 ```
 
 ```{r}
-set.seed(42)
-
-P2_distribution <- function(draw, grid) {
+evaluate_P2_ <- function(draw, grid, method = 'distribution') {
+  if (method == 'density') {
+    method = dnorm
+  } else if (method == 'distribution') {
+    method = pnorm
+  }
   bind_cols(draw$theta, tibble(p = draw$p)) %>%
     mutate(.component = row_number()) %>%
     select(.component, everything()) %>%
     mutate(data = map2(mu, tau, function(mu, tau) {
                                   tibble(x = grid,
-                                         y = pnorm(grid, mean = mu, sd = sqrt(1 / tau)))
+                                         y = method(grid, mean = mu, sd = sqrt(1 / tau)))
                                 })) %>%
     unnest(data) %>%
     group_by(x) %>%
     summarize(y = sum(p * y), .groups = 'drop')
 }
 
+evaluate_P2 <- function(draws, grid, ...) {
+  process <- function(i) {
+    evaluate_P2_(draws[[i]], grid, ...) %>%
+      mutate(.draw = i) %>%
+      select(.draw, everything())
+  }
+  sapply(1:length(draws), process, simplify = FALSE) %>%
+    bind_rows()
+}
+
 predictive_check <- function(draws, reference, size = 1000) {
   grid <- seq(min(reference$x), to = max(reference$x), length.out = size)
-  sample <- sapply(1:length(draws),
-                   simplify = FALSE,
-                   function(i) {
-                     P2_distribution(draws[[i]], grid) %>%
-                       mutate(.draw = i) %>%
-                       select(.draw, everything())
-                   }) %>%
-    bind_rows()
+  sample <- evaluate_P2(draws, grid)
   ggplot() +
     stat_ecdf(data = reference, mapping = aes(x)) +
     geom_line(data = sample, mapping = aes(x, y, group = .draw), alpha = 0.1)
 }
+```
+
+```{r}
+evaluate_P2_(list(p = c(0.3, 0.7), theta = tibble(mu = c(-5, 5), tau = c(1, 1))),
+             seq(-10, to = 10, length.out = 1000),
+             method = 'density') %>%
+  ggplot(aes(x, y)) +
+  geom_line()
+```
+
+```{r}
+set.seed(42)
 
 predictive_check(sample(tail(draws, L / 2), 10), data)
 ```
