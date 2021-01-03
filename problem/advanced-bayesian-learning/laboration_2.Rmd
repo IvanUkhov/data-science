@@ -114,7 +114,7 @@ tibble(nu0 = c(1, 10, 100)) %>%
 ```{r}
 sample_P0_prior <- function(l, mu0 = 0, n0 = 1, alpha0 = 1, beta0 = 0.5) {
   tau <- rgamma(l, alpha0, beta0)
-  mu <- rnorm(l, mu0, n0 * tau)
+  mu <- rnorm(l, mu0, 1 / sqrt(n0 * tau))
   tibble(mu = mu, tau = tau)
 }
 
@@ -137,7 +137,7 @@ sample_P0_posterior <- function(l, x, mu0 = 0, n0 = 1, alpha0 = 1, beta0 = 0.5) 
 }
 
 evaluate_P1 <- function(x, theta) {
-  pnorm(x, theta$mu, sqrt(1 / theta$tau))
+  pnorm(x, theta$mu, 1 / sqrt(theta$tau))
 }
 
 evaluate_P2_ <- function(draw, grid, type = 'cdf') {
