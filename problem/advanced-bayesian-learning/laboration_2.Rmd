@@ -196,16 +196,21 @@ update_theta <- function(x, state, ...) {
     bind_rows()
 }
 
-sample_gibbs <- function(x, m, l, mu0 = mean(x), sigma0 = 2.5 * sd(x), n0 = 2) {
+sample_gibbs <- function(x, m, l,
+                         nu0 = 1,
+                         mu0 = mean(x),
+                         sigma0 = 2.5 * sd(x),
+                         n0 = 2) {
   state <- list(
     p = rep(1 / m, m),
     k = sample(1:m, length(x), replace = TRUE),
-    theta = tibble(mu = rep(mean(x), m), tau = rep(1 / var(x), m))
+    theta = tibble(mu = rep(mean(x), m),
+                   tau = rep(1 / var(x) / 2.5^2, m))
   )
   draws <- vector('list', l)
   for(i in 1:l) {
     state$k <- update_k(x, state)
-    state$p <- update_p(x, state)
+    state$p <- update_p(x, state, nu0 = nu0)
     state$theta <- update_theta(x, state,
                                 mu0 = mu0,
                                 n0 = n0,
@@ -268,6 +273,7 @@ evaluate_P2_(list(p = c(0.3, 0.7), theta = tibble(mu = c(-5, 5), tau = c(1, 1)))
 set.seed(42)
 
 draws <- sample_gibbs(data0$x, 10, 1000, sigma0 = 1)
+predictive_check(sample(tail(draws, length(draws) / 2), 10), data0, type = 'pdf')
 ```
 
 ```{r}
@@ -281,5 +287,6 @@ tibble(value = sapply(draws, function(draw) length(unique(draw$k)))) %>%
 ```{r}
 set.seed(42)
 
-predictive_check(sample(tail(draws, length(draws) / 2), 10), data0, type = 'pdf')
+draws <- sample_gibbs(data$x, 10, 1000)
+predictive_check(sample(tail(draws, length(draws) / 2), 10), data, type = 'pdf')
 ```
