@@ -91,7 +91,7 @@ tibble(nu0 = c(1, 10, 100)) %>%
 ```{r}
 data %>%
   ggplot(aes(x)) +
-  geom_dotplot(method = 'histodot', binwidth = 1, dotsize = 0.8) +
+  geom_dotplot(type = 'histodot', binwidth = 1, dotsize = 0.8) +
   labs(x = 'Velocity', y = 'Observations') +
   theme(axis.text.y = element_blank())
 ```
@@ -196,11 +196,11 @@ tibble(value = sapply(draws, function(draw) length(unique(draw$k)))) %>%
 ```
 
 ```{r}
-evaluate_P2_ <- function(draw, grid, method = 'distribution') {
-  if (method == 'density') {
-    method = dnorm
-  } else if (method == 'distribution') {
-    method = pnorm
+evaluate_P2_ <- function(draw, grid, type = 'cdf') {
+  if (type == 'cdf') {
+    method <- pnorm
+  } else if (type == 'pdf') {
+    method <- dnorm
   }
   bind_cols(draw$theta, tibble(p = draw$p)) %>%
     mutate(.component = row_number()) %>%
@@ -224,19 +224,30 @@ evaluate_P2 <- function(draws, grid, ...) {
     bind_rows()
 }
 
-predictive_check <- function(draws, reference, size = 1000) {
-  grid <- seq(min(reference$x), to = max(reference$x), length.out = size)
-  sample <- evaluate_P2(draws, grid)
-  ggplot() +
-    stat_ecdf(data = reference, mapping = aes(x)) +
-    geom_line(data = sample, mapping = aes(x, y, group = .draw), alpha = 0.1)
+predictive_check <- function(draws, reference, size = 1000, type = 'cdf') {
+  grid <- seq(min(reference$x) - 5, to = max(reference$x) + 5, length.out = size)
+  sample <- evaluate_P2(draws, grid, type = type)
+  plot <- ggplot()
+  if (type == 'cdf') {
+    plot <- plot +
+      stat_ecdf(data = reference, mapping = aes(x))
+  } else if (type == 'pdf') {
+    plot <- plot +
+      geom_histogram(data = reference,
+                     mapping = aes(x, y = ..count.. / sum(..count..)),
+                     binwidth = 1,
+                     fill = 'gray80')
+  }
+  plot +
+    geom_line(data = sample, mapping = aes(x, y, group = .draw), size = 0.25) +
+    labs(x = 'Velocity', y = 'Density')
 }
 ```
 
 ```{r}
 evaluate_P2_(list(p = c(0.3, 0.7), theta = tibble(mu = c(-5, 5), tau = c(1, 1))),
              seq(-10, to = 10, length.out = 1000),
-             method = 'density') %>%
+             type = 'pdf') %>%
   ggplot(aes(x, y)) +
   geom_line()
 ```
@@ -244,5 +255,5 @@ evaluate_P2_(list(p = c(0.3, 0.7), theta = tibble(mu = c(-5, 5), tau = c(1, 1)))
 ```{r}
 set.seed(42)
 
-predictive_check(sample(tail(draws, L / 2), 10), data)
+predictive_check(sample(tail(draws, L / 2), 10), data, type = 'pdf')
 ```
