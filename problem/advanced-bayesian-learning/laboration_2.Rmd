@@ -42,12 +42,12 @@ stick_break <- function(l, alpha, beta) {
   q * c(1, cumprod(1 - head(q, -1)))
 }
 
-nu_prior <- function(nu0 = 1, mu0 = 20, sigma0 = 3) {
+nu_prior <- function(nu0 = 1, mu0 = 0, sigma0 = 1) {
   sample_P0 <- function(l) rnorm(l, mean = mu0, sd = sigma0)
   list(sample_P0 = sample_P0, nu0 = nu0)
 }
 
-nu_posterior <- function(x, nu0 = 1, mu0 = 20, sigma0 = 3) {
+nu_posterior <- function(x, nu0 = 1, mu0 = 0, sigma0 = 1) {
   prior <- nu_prior(nu0 = nu0, mu0 = mu0, sigma0 = sigma0)
   sample_P0 <- function(l) {
     i <- rbernoulli(l, p = nu0 / (nu0 + length(x)))
@@ -77,7 +77,10 @@ plot_distribution <- function(sample, reference) {
 set.seed(42)
 
 tibble(nu0 = c(1, 10, 100)) %>%
-  mutate(data = map(nu0, ~ sample_nu(l = 10000, nu = nu_prior(.x)))) %>%
+  mutate(data = map(nu0, ~ sample_nu(l = 10000,
+                                     nu = nu_prior(.x,
+                                                   mu0 = mean(data$x),
+                                                   sigma0 = sd(data$x))))) %>%
   unnest(data) %>%
   mutate(nu0 = str_c('Prior volume = ', nu0)) %>%
   group_by(nu0) %>%
@@ -90,7 +93,9 @@ set.seed(42)
 
 tibble(nu0 = c(1, 10, 100)) %>%
   mutate(data = map(nu0, ~ sample_nu(l = 10000,
-                                     nu = nu_posterior(data$x, .x)))) %>%
+                                     nu = nu_posterior(data$x, .x,
+                                                       mu0 = mean(data$x),
+                                                       sigma0 = sd(data$x))))) %>%
   unnest(data) %>%
   mutate(nu0 = str_c('Prior volume = ', nu0)) %>%
   group_by(nu0) %>%
@@ -101,13 +106,13 @@ tibble(nu0 = c(1, 10, 100)) %>%
 # Mixing prior
 
 ```{r}
-sample_P0_prior <- function(l, mu0 = 20, n0 = 1, alpha0 = 1, beta0 = 0.5) {
+sample_P0_prior <- function(l, mu0 = 0, n0 = 1, alpha0 = 1, beta0 = 0.5) {
   tau <- rgamma(l, alpha0, beta0)
   mu <- rnorm(l, mu0, n0 * tau)
   tibble(mu = mu, tau = tau)
 }
 
-sample_P0_posterior <- function(l, x, mu0 = 20, n0 = 1, alpha0 = 1, beta0 = 0.5) {
+sample_P0_posterior <- function(l, x, mu0 = 0, n0 = 1, alpha0 = 1, beta0 = 0.5) {
   n1 <- length(x)
   if (n1 == 0) {
     mu1 <- 0
@@ -129,77 +134,6 @@ evaluate_P1 <- function(x, theta) {
   pnorm(x, theta$mu, sqrt(1 / theta$tau))
 }
 
-update_k <- function(x, state) {
-  m <- length(state$p)
-  n <- length(x)
-  p <- rep(state$p, n)
-  x <- rep(x, each = m)
-  theta <- state$theta %>% slice(rep(1:m, n))
-  p <- matrix(p * evaluate_P1(x, theta), nrow = m, ncol = n)
-  p <- p / colSums(p)
-  apply(p, 2, function(p) sample(1:m, 1, prob = p))
-}
-
-update_p <- function(x, state, nu0 = 1) {
-  m <- length(state$p)
-  n <- rep(0, m)
-  k <- as.data.frame(table(state$k))
-  n[as.numeric(levels(k[ , 1]))[k[ , 1]]] <- k[ , 2]
-  alpha <- 1 + n
-  beta <- nu0 + cumsum(c(n[-1], 0))
-  stick_break(m, alpha, beta)
-}
-
-update_theta <- function(x, state) {
-  m <- length(state$p)
-  sapply(1:m, function(i) sample_P0_posterior(1, x[state$k == i]),
-         simplify = FALSE) %>%
-    bind_rows()
-}
-```
-
-```{r}
-sample_P0_prior(1000) %>%
-  ggplot() +
-  geom_density(aes(mu))
-```
-
-```{r}
-sample_P0_posterior(1000, data$x) %>%
-  ggplot() +
-  geom_density(aes(mu))
-```
-
-```{r}
-set.seed(42)
-
-m <- 50
-L <- 1000
-
-state <- list(
-  p = rep(1 / m, m),
-  k = sample(1:m, nrow(data), replace = TRUE),
-  theta = tibble(mu = rep(mean(data$x), m),
-                 tau = rep(1 / var(data$x), m))
-)
-
-draws <- vector('list', L)
-for(i in 1:L) {
-  state$k <- update_k(data$x, state)
-  state$p <- update_p(data$x, state)
-  state$theta <- update_theta(data$x, state)
-  draws[[i]] <- state
-}
-```
-
-```{r}
-tibble(value = sapply(draws, function(draw) length(unique(draw$k)))) %>%
-  mutate(draw = row_number()) %>%
-  ggplot(aes(draw, value)) +
-  geom_line(size = 0.1)
-```
-
-```{r}
 evaluate_P2_ <- function(draw, grid, type = 'cdf') {
   if (type == 'cdf') {
     method <- pnorm
@@ -228,6 +162,51 @@ evaluate_P2 <- function(draws, grid, ...) {
     bind_rows()
 }
 
+update_k <- function(x, state) {
+  m <- length(state$p)
+  n <- length(x)
+  p <- rep(state$p, n)
+  x <- rep(x, each = m)
+  theta <- state$theta %>% slice(rep(1:m, n))
+  p <- matrix(p * evaluate_P1(x, theta), nrow = m, ncol = n)
+  p <- p / colSums(p)
+  apply(p, 2, function(p) sample(1:m, 1, prob = p))
+}
+
+update_p <- function(x, state, nu0 = 1) {
+  m <- length(state$p)
+  n <- rep(0, m)
+  k <- as.data.frame(table(state$k))
+  n[as.numeric(levels(k[ , 1]))[k[ , 1]]] <- k[ , 2]
+  alpha <- 1 + n
+  beta <- nu0 + cumsum(c(n[-1], 0))
+  stick_break(m, alpha, beta)
+}
+
+update_theta <- function(x, state, ...) {
+  m <- length(state$p)
+  sapply(1:m, function(i) sample_P0_posterior(1, x[state$k == i], ...),
+         simplify = FALSE) %>%
+    bind_rows()
+}
+
+sample_gibbs <- function(x, m, L) {
+  state <- list(
+    p = rep(1 / m, m),
+    k = sample(1:m, length(x), replace = TRUE),
+    theta = tibble(mu = rep(mean(x), m),
+                   tau = rep(1 / var(x), m))
+  )
+  draws <- vector('list', L)
+  for(i in 1:L) {
+    state$k <- update_k(x, state)
+    state$p <- update_p(x, state)
+    state$theta <- update_theta(x, state, mu0 = mean(x))
+    draws[[i]] <- state
+  }
+  draws
+}
+
 predictive_check <- function(draws, reference, size = 1000, type = 'cdf') {
   grid <- seq(min(reference$x) - 5, to = max(reference$x) + 5, length.out = size)
   sample <- evaluate_P2(draws, grid, type = type)
@@ -249,6 +228,18 @@ predictive_check <- function(draws, reference, size = 1000, type = 'cdf') {
 ```
 
 ```{r}
+sample_P0_prior(1000, mu0 = mean(data$x)) %>%
+  ggplot() +
+  geom_density(aes(mu))
+```
+
+```{r}
+sample_P0_posterior(1000, data$x, mu0 = mean(data$x)) %>%
+  ggplot() +
+  geom_density(aes(mu))
+```
+
+```{r}
 evaluate_P2_(list(p = c(0.3, 0.7), theta = tibble(mu = c(-5, 5), tau = c(1, 1))),
              seq(-10, to = 10, length.out = 1000),
              type = 'pdf') %>%
@@ -259,5 +250,21 @@ evaluate_P2_(list(p = c(0.3, 0.7), theta = tibble(mu = c(-5, 5), tau = c(1, 1)))
 ```{r}
 set.seed(42)
 
-predictive_check(sample(tail(draws, L / 2), 10), data, type = 'pdf')
+data <- tibble(i = rbinom(100, 1, 0.3)) %>%
+  mutate(x = i * rnorm(n(), -5, 1) + (1 - i) * rnorm(n(), 5, 1))
+
+draws <- sample_gibbs(data$x, 2, 1000)
+```
+
+```{r}
+tibble(value = sapply(draws, function(draw) length(unique(draw$k)))) %>%
+  mutate(draw = row_number()) %>%
+  ggplot(aes(draw, value)) +
+  geom_line(size = 0.1)
+```
+
+```{r}
+set.seed(42)
+
+predictive_check(sample(tail(draws, length(draws) / 2), 10), data, type = 'pdf')
 ```
