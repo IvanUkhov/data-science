@@ -267,7 +267,7 @@ evaluate_P2_(list(p = c(0.3, 0.7), theta = tibble(mu = c(-5, 5), tau = c(1, 1)))
 ```{r}
 set.seed(42)
 
-draws <- sample_gibbs(data0$x, 2, 1000, mu0 = 0, sigma0 = 5)
+draws <- sample_gibbs(data0$x, 10, 1000, sigma0 = 1)
 ```
 
 ```{r}
