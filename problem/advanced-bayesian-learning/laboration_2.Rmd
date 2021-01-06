@@ -54,23 +54,23 @@ stick_break <- function(l, alpha, beta) {
   q * c(1, cumprod(1 - head(q, -1)))
 }
 
-nu_prior <- function(nu0 = 1, mu0 = 0, sigma0 = 1) {
+nu_prior <- function(lambda = 1, mu0 = 0, sigma0 = 1) {
   sample_P0 <- function(l) rnorm(l, mean = mu0, sd = sigma0)
-  list(sample_P0 = sample_P0, nu0 = nu0)
+  list(sample_P0 = sample_P0, lambda = lambda)
 }
 
-nu_posterior <- function(x, nu0 = 1, mu0 = 0, sigma0 = 1) {
-  prior <- nu_prior(nu0 = nu0, mu0 = mu0, sigma0 = sigma0)
+nu_posterior <- function(x, lambda = 1, mu0 = 0, sigma0 = 1) {
+  prior <- nu_prior(lambda = lambda, mu0 = mu0, sigma0 = sigma0)
   sample_P0 <- function(l) {
-    i <- rbernoulli(l, p = nu0 / (nu0 + length(x)))
+    i <- rbernoulli(l, p = lambda / (lambda + length(x)))
     i * prior$sample_P0(l) + (1 - i) * sample(x, l, replace = TRUE)
   }
-  list(sample_P0 = sample_P0, nu0 = nu0 + length(x))
+  list(sample_P0 = sample_P0, lambda = lambda + length(x))
 }
 
 sample_nu <- function(l, nu) {
   x <- nu$sample_P0(l)
-  p <- stick_break(l, 1, nu$nu0)
+  p <- stick_break(l, 1, nu$lambda)
   tibble(x = x, p = p)
 }
 
@@ -88,31 +88,31 @@ plot_distribution <- function(sample, reference) {
 ```{r, fig.asp = 1}
 set.seed(42)
 
-tibble(nu0 = c(1, 10, 100, 1000)) %>%
-  mutate(data = map(nu0, ~ sample_nu(l = 10000,
-                                     nu = nu_prior(.x,
-                                                   mu0 = mean(data$x),
-                                                   sigma0 = sd(data$x))))) %>%
+tibble(lambda = c(1, 10, 100, 1000)) %>%
+  mutate(data = map(lambda, ~ sample_nu(l = 10000,
+                                        nu = nu_prior(.x,
+                                                      mu0 = mean(data$x),
+                                                      sigma0 = sd(data$x))))) %>%
   unnest(data) %>%
-  mutate(nu0 = str_c('Prior volume = ', nu0)) %>%
-  group_by(nu0) %>%
+  mutate(lambda = str_c('Prior volume = ', lambda)) %>%
+  group_by(lambda) %>%
   plot_distribution(data) +
-  facet_wrap(vars(nu0), ncol = 1)
+  facet_wrap(vars(lambda), ncol = 1)
 ```
 
 ```{r, fig.asp = 1}
 set.seed(42)
 
-tibble(nu0 = c(1, 10, 100, 1000)) %>%
-  mutate(data = map(nu0, ~ sample_nu(l = 10000,
-                                     nu = nu_posterior(data$x, .x,
-                                                       mu0 = mean(data$x),
-                                                       sigma0 = sd(data$x))))) %>%
+tibble(lambda = c(1, 10, 100, 1000)) %>%
+  mutate(data = map(lambda, ~ sample_nu(l = 10000,
+                                        nu = nu_posterior(data$x, .x,
+                                                          mu0 = mean(data$x),
+                                                          sigma0 = sd(data$x))))) %>%
   unnest(data) %>%
-  mutate(nu0 = str_c('Prior volume = ', nu0)) %>%
-  group_by(nu0) %>%
+  mutate(lambda = str_c('Prior volume = ', lambda)) %>%
+  group_by(lambda) %>%
   plot_distribution(data) +
-  facet_wrap(vars(nu0), ncol = 1)
+  facet_wrap(vars(lambda), ncol = 1)
 ```
 
 # Mixing prior
@@ -194,11 +194,11 @@ update_k <- function(x, state) {
   apply(p, 2, function(p) sample(1:m, 1, prob = p))
 }
 
-update_p <- function(x, state, nu0 = 1) {
+update_p <- function(x, state) {
   m <- length(state$p)
   n <- count_subjects(m, state$k)
   alpha <- 1 + n
-  beta <- nu0 + sum(n) - cumsum(n)
+  beta <- state$lambda + sum(n) - cumsum(n)
   stick_break(m, alpha, beta)
 }
 
@@ -210,12 +210,13 @@ update_theta <- function(x, state, ...) {
 }
 
 sample_gibbs <- function(x, m, l,
-                         nu0 = 1,
+                         lambda = 1,
                          mu0 = mean(x),
                          sigma0 = sd(x),
                          n0 = 2) {
   state <- list(
-    p = stick_break(m, 1, nu0),
+    lambda = lambda,
+    p = stick_break(m, 1, lambda),
     k = sample(1:m, length(x), replace = TRUE),
     theta = tibble(mu = rep(mu0, m),
                    tau = rep(1 / sigma0^2, m))
@@ -223,7 +224,7 @@ sample_gibbs <- function(x, m, l,
   draws <- vector('list', l)
   for(i in 1:l) {
     state$k <- update_k(x, state)
-    state$p <- update_p(x, state, nu0 = nu0)
+    state$p <- update_p(x, state)
     state$theta <- update_theta(x, state,
                                 mu0 = mu0,
                                 n0 = n0,
