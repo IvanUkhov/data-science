@@ -41,7 +41,7 @@ ggplot() +
 
 ```{r}
 ggplot() +
-  geom_reference(data, type = 'pdf') +
+  geom_reference(data, type = 'histogram') +
   labs(x = 'Velocity', y = 'Density')
 ```
 
@@ -213,9 +213,9 @@ sample_gibbs <- function(x, m, l,
                          nu0 = 1,
                          mu0 = mean(x),
                          sigma0 = sd(x),
-                         n0 = 4) {
+                         n0 = 2) {
   state <- list(
-    p = rep(1 / m, m),
+    p = stick_break(m, 1, nu0),
     k = sample(1:m, length(x), replace = TRUE),
     theta = tibble(mu = rep(mu0, m),
                    tau = rep(1 / sigma0^2, m))
@@ -249,8 +249,8 @@ set.seed(42)
 
 sample_P0_prior(1000,
                 mu0 = mean(data$x),
-                n0 = 4,
-                beta0 = 4 * sd(data$x)^2 / 2) %>%
+                n0 = 2,
+                beta0 = 2 * sd(data$x)^2 / 2) %>%
   ggplot() +
   geom_vline(xintercept = mean(data$x), color = 'gray70') +
   geom_density(aes(mu)) +
@@ -262,8 +262,8 @@ set.seed(42)
 
 sample_P0_posterior(1000, data$x,
                     mu0 = mean(data$x),
-                    n0 = 4,
-                    beta0 = 4 * sd(data$x)^2 / 2) %>%
+                    n0 = 2,
+                    beta0 = 2 * sd(data$x)^2 / 2) %>%
   ggplot() +
   geom_vline(xintercept = mean(data$x), color = 'gray70') +
   geom_density(aes(mu)) +
@@ -285,7 +285,7 @@ evaluate_P3_(list(p = c(0.3, 0.7), theta = tibble(mu = c(-5, 5), tau = c(1, 1)))
 ```{r}
 set.seed(42)
 
-draws <- sample_gibbs(data0$x, 50, 1000, sigma0 = 1)
+draws <- sample_gibbs(data0$x, 25, 1000)
 predictive_check(sample(tail(draws, length(draws) / 2), 10), data0,
                  type = 'histogram')
 ```
@@ -301,7 +301,7 @@ tibble(value = sapply(draws, function(draw) length(unique(draw$k)))) %>%
 ```{r}
 set.seed(42)
 
-draws <- sample_gibbs(data$x, 50, 1000)
+draws <- sample_gibbs(data$x, 25, 1000)
 predictive_check(sample(tail(draws, length(draws) / 2), 10), data,
                  type = 'histogram')
 ```
