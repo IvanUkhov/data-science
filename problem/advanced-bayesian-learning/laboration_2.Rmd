@@ -142,11 +142,11 @@ sample_P0_posterior <- function(l, x, mu0 = 0, n0 = 1, alpha0 = n0 / 2, beta0 = 
   )
 }
 
-evaluate_P1 <- function(x, theta) {
+evaluate_P2 <- function(x, theta) {
   dnorm(x, theta$mu, 1 / sqrt(theta$tau))
 }
 
-evaluate_P2_ <- function(draw, grid, type = 'cdf') {
+evaluate_P3_ <- function(draw, grid, type = 'cdf') {
   if (type == 'cdf') {
     method <- pnorm
   } else if (type == 'pdf') {
@@ -164,9 +164,9 @@ evaluate_P2_ <- function(draw, grid, type = 'cdf') {
     summarize(y = sum(p * y), .groups = 'drop')
 }
 
-evaluate_P2 <- function(draws, grid, ...) {
+evaluate_P3 <- function(draws, grid, ...) {
   process <- function(i) {
-    evaluate_P2_(draws[[i]], grid, ...) %>%
+    evaluate_P3_(draws[[i]], grid, ...) %>%
       mutate(.draw = i) %>%
       select(.draw, everything())
   }
@@ -179,7 +179,7 @@ update_k <- function(x, state) {
   n <- length(x)
   x <- rep(x, each = m)
   theta <- state$theta %>% slice(rep(1:m, n))
-  p <- matrix(evaluate_P1(x, theta), nrow = m, ncol = n)
+  p <- matrix(evaluate_P2(x, theta), nrow = m, ncol = n)
   p <- sweep(p, 1, state$p, `*`)
   p <- sweep(p, 2, colSums(p), `/`)
   apply(p, 2, function(p) sample(1:m, 1, prob = p))
@@ -229,7 +229,7 @@ sample_gibbs <- function(x, m, l,
 
 predictive_check <- function(draws, reference, size = 1000, type = 'cdf', ...) {
   grid <- seq(min(reference$x) - 5, to = max(reference$x) + 5, length.out = size)
-  sample <- evaluate_P2(draws, grid, type = type)
+  sample <- evaluate_P3(draws, grid, type = type)
   ggplot() +
     geom_reference(reference, type = type, ...) +
     geom_line(data = sample, mapping = aes(x, y, group = .draw), size = 0.25) +
@@ -267,7 +267,7 @@ sample_P0_posterior(1000, data$x,
 data0 <- tibble(i = rbinom(100, 1, 0.3)) %>%
   mutate(x = i * rnorm(n(), -5, 1) + (1 - i) * rnorm(n(), 5, 1))
 
-evaluate_P2_(list(p = c(0.3, 0.7), theta = tibble(mu = c(-5, 5), tau = c(1, 1))),
+evaluate_P3_(list(p = c(0.3, 0.7), theta = tibble(mu = c(-5, 5), tau = c(1, 1))),
              seq(-10, to = 10, length.out = 1000),
              type = 'pdf') %>%
   ggplot(aes(x, y)) +
