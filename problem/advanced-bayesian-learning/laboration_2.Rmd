@@ -151,6 +151,8 @@ evaluate_P3_ <- function(draw, grid, type = 'cdf') {
     method <- pnorm
   } else if (type == 'pdf') {
     method <- dnorm
+  } else if (type == 'histogram') {
+    method <- dnorm
   }
   bind_cols(draw$theta, tibble(p = draw$p)) %>%
     mutate(.component = row_number()) %>%
