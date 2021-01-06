@@ -198,7 +198,7 @@ update_p <- function(x, state, nu0 = 1) {
   m <- length(state$p)
   n <- count_subjects(m, state$k)
   alpha <- 1 + n
-  beta <- nu0 + cumsum(c(n[-1], 0))
+  beta <- nu0 + sum(n) - cumsum(n)
   stick_break(m, alpha, beta)
 }
 
