@@ -176,6 +176,13 @@ evaluate_P3 <- function(draws, grid, ...) {
     bind_rows()
 }
 
+count_subjects <- function(m, k) {
+  n <- rep(0, m)
+  k <- as.data.frame(table(k))
+  n[as.numeric(levels(k[ , 1]))[k[ , 1]]] <- k[ , 2]
+  n
+}
+
 update_k <- function(x, state) {
   m <- length(state$p)
   n <- length(x)
@@ -189,9 +196,7 @@ update_k <- function(x, state) {
 
 update_p <- function(x, state, nu0 = 1) {
   m <- length(state$p)
-  n <- rep(0, m)
-  k <- as.data.frame(table(state$k))
-  n[as.numeric(levels(k[ , 1]))[k[ , 1]]] <- k[ , 2]
+  n <- count_subjects(m, state$k)
   alpha <- 1 + n
   beta <- nu0 + cumsum(c(n[-1], 0))
   stick_break(m, alpha, beta)
