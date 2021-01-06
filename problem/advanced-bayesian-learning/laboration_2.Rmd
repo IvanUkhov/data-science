@@ -10,13 +10,19 @@ theme_set(theme_minimal())
 ```
 
 ```{r}
-geom_reference <- function(data, type = 'cdf') {
+geom_reference <- function(data, type = 'cdf', binwidth = 1) {
   if (type == 'cdf') {
-    stat_ecdf(data = data, mapping = aes(x), color = 'gray70')
+    stat_ecdf(data = data,
+              mapping = aes(x),
+              color = 'gray70')
   } else if (type == 'pdf') {
+    geom_density(data = data,
+                 mapping = aes(x),
+                 color = 'gray70')
+  } else if (type == 'histogram') {
     geom_histogram(data = data,
                    mapping = aes(x, y = ..count.. / sum(..count..)),
-                   binwidth = 1,
+                   binwidth = binwidth,
                    fill = 'gray70')
   }
 }
@@ -82,7 +88,7 @@ plot_distribution <- function(sample, reference) {
 ```{r, fig.asp = 1}
 set.seed(42)
 
-tibble(nu0 = c(1, 10, 100)) %>%
+tibble(nu0 = c(1, 10, 100, 1000)) %>%
   mutate(data = map(nu0, ~ sample_nu(l = 10000,
                                      nu = nu_prior(.x,
                                                    mu0 = mean(data$x),
@@ -97,7 +103,7 @@ tibble(nu0 = c(1, 10, 100)) %>%
 ```{r, fig.asp = 1}
 set.seed(42)
 
-tibble(nu0 = c(1, 10, 100)) %>%
+tibble(nu0 = c(1, 10, 100, 1000)) %>%
   mutate(data = map(nu0, ~ sample_nu(l = 10000,
                                      nu = nu_posterior(data$x, .x,
                                                        mu0 = mean(data$x),
@@ -221,11 +227,11 @@ sample_gibbs <- function(x, m, l,
   draws
 }
 
-predictive_check <- function(draws, reference, size = 1000, type = 'cdf') {
+predictive_check <- function(draws, reference, size = 1000, type = 'cdf', ...) {
   grid <- seq(min(reference$x) - 5, to = max(reference$x) + 5, length.out = size)
   sample <- evaluate_P2(draws, grid, type = type)
   ggplot() +
-    geom_reference(reference, type = type) +
+    geom_reference(reference, type = type, ...) +
     geom_line(data = sample, mapping = aes(x, y, group = .draw), size = 0.25) +
     labs(x = 'Velocity', y = 'Density')
 }
