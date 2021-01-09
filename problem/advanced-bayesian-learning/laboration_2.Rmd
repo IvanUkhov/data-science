@@ -68,7 +68,7 @@ nu_posterior <- function(x, lambda = 1, mu0 = 0, sigma0 = 1) {
   list(sample_P0 = sample_P0, lambda = lambda + length(x))
 }
 
-sample_nu <- function(l, nu) {
+sample_DP <- function(l, nu) {
   x <- nu$sample_P0(l)
   p <- stick_break(l, 1, nu$lambda)
   tibble(x = x, p = p)
@@ -89,8 +89,8 @@ plot_distribution <- function(sample, reference) {
 set.seed(42)
 
 tibble(lambda = c(1, 10, 100, 1000)) %>%
-  mutate(data = map(lambda, ~ sample_nu(l = 10000,
-                                        nu = nu_prior(.x,
+  mutate(data = map(lambda, ~ sample_DP(l = 10000,
+                                        nu = nu_prior(lambda = .x,
                                                       mu0 = mean(data$x),
                                                       sigma0 = sd(data$x))))) %>%
   unnest(data) %>%
@@ -104,8 +104,9 @@ tibble(lambda = c(1, 10, 100, 1000)) %>%
 set.seed(42)
 
 tibble(lambda = c(1, 10, 100, 1000)) %>%
-  mutate(data = map(lambda, ~ sample_nu(l = 10000,
-                                        nu = nu_posterior(data$x, .x,
+  mutate(data = map(lambda, ~ sample_DP(l = 10000,
+                                        nu = nu_posterior(data$x,
+                                                          lambda = .x,
                                                           mu0 = mean(data$x),
                                                           sigma0 = sd(data$x))))) %>%
   unnest(data) %>%
@@ -139,6 +140,18 @@ sample_P0_posterior <- function(l, x, mu0 = 0, n0 = 1, alpha0 = n0 / 2, beta0 = 
     n0 = n0 + n1,
     alpha0 = alpha0 + n1 / 2,
     beta0 = beta0 + 0.5 * (n0 * n1 * (mu1 - mu0)^2 / (n0 + n1) + n1 * s1)
+  )
+}
+
+sample_lambda_prior <- function(l, p, alpha0 = 1, beta0 = 1) {
+  rgamma(l, alpha0, beta0)
+}
+
+sample_lambda_posterior <- function(l, p, alpha0 = 1, beta0 = 1) {
+  sample_lambda_prior(
+    l = l,
+    alpha0 = alpha0 + length(p) - 1,
+    beta0 = beta0 - log(tail(p, 1)),
   )
 }
 
@@ -209,11 +222,15 @@ update_theta <- function(x, state, ...) {
     bind_rows()
 }
 
-sample_gibbs <- function(x, m, l,
-                         lambda = 1,
-                         mu0 = mean(x),
-                         sigma0 = sd(x),
-                         n0 = 2) {
+update_lambda <- function(x, state, ...) {
+  sample_lambda_posterior(1, state$p, ...)
+}
+
+sample_DPM <- function(x, m, l,
+                       lambda = 1,
+                       mu0 = mean(x),
+                       sigma0 = sd(x),
+                       n0 = 2) {
   state <- list(
     lambda = lambda,
     p = stick_break(m, 1, lambda),
@@ -286,7 +303,7 @@ evaluate_P3_(list(p = c(0.3, 0.7), theta = tibble(mu = c(-5, 5), tau = c(1, 1)))
 ```{r}
 set.seed(42)
 
-draws <- sample_gibbs(data0$x, 25, 1000)
+draws <- sample_DPM(data0$x, 25, 1000)
 predictive_check(sample(tail(draws, length(draws) / 2), 10), data0,
                  type = 'histogram')
 ```
@@ -302,7 +319,7 @@ tibble(value = sapply(draws, function(draw) length(unique(draw$k)))) %>%
 ```{r}
 set.seed(42)
 
-draws <- sample_gibbs(data$x, 25, 1000)
+draws <- sample_DPM(data$x, 25, 1000)
 predictive_check(sample(tail(draws, length(draws) / 2), 10), data,
                  type = 'histogram')
 ```
