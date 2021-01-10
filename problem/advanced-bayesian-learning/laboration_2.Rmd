@@ -143,15 +143,15 @@ sample_P0_posterior <- function(l, x, mu0 = 0, n0 = 1, alpha0 = n0 / 2, beta0 = 
   )
 }
 
-sample_Pl_prior <- function(l, p, alpha0 = 1, beta0 = 1) {
+sample_Plambda_prior <- function(l, alpha0 = 2, beta0 = 0.1) {
   rgamma(l, alpha0, beta0)
 }
 
-sample_Pl_posterior <- function(l, p, alpha0 = 1, beta0 = 1) {
-  sample_Pl_prior(
+sample_Plambda_posterior <- function(l, p, alpha0 = 2, beta0 = 0.1) {
+  sample_Plambda_prior(
     l = l,
     alpha0 = alpha0 + length(p) - 1,
-    beta0 = beta0 - log(tail(p, 1)),
+    beta0 = beta0 - log(tail(p, 1))
   )
 }
 
@@ -223,30 +223,33 @@ update_theta <- function(x, state, ...) {
 }
 
 update_lambda <- function(x, state, ...) {
-  sample_Pl_posterior(1, state$p, ...)
+  sample_Plambda_posterior(1, state$p, ...)
 }
 
 sample_DPM <- function(x, m, l,
-                       lambda = 1,
-                       mu0 = mean(x),
-                       sigma0 = sd(x),
+                       mu0_x = mean(x),
+                       sigma0_x = sd(x),
+                       sigma0_lambda = 10,
                        n0 = 2) {
   state <- list(
-    lambda = lambda,
-    p = stick_break(m, 1, lambda),
+    lambda = 1,
+    p = stick_break(m, 1, 1),
     k = sample(1:m, length(x), replace = TRUE),
-    theta = tibble(mu = rep(mu0, m),
-                   tau = rep(1 / sigma0^2, m))
+    theta = tibble(mu = rep(mu0_x, m),
+                   tau = rep(1 / sigma0_x^2, m))
   )
   draws <- vector('list', l)
   for(i in 1:l) {
     state$k <- update_k(x, state)
     state$p <- update_p(x, state)
     state$theta <- update_theta(x, state,
-                                mu0 = mu0,
+                                mu0 = mu0_x,
                                 n0 = n0,
                                 alpha0 = n0 / 2,
-                                beta0 = n0 * sigma0^2 / 2)
+                                beta0 = n0 * sigma0_x^2 / 2)
+    state$lambda <- update_lambda(x, state,
+                                  alpha0 = n0,
+                                  beta0 = sqrt(n0) / sigma0_lambda)
     draws[[i]] <- state
   }
   draws
@@ -309,7 +312,7 @@ predictive_check(sample(tail(draws, length(draws) / 2), 10), data0,
 ```
 
 ```{r}
-tibble(value = sapply(draws, function(draw) length(unique(draw$k)))) %>%
+tibble(value = sapply(draws, function(draw) draw$lambda)) %>%
   mutate(draw = row_number()) %>%
   ggplot(aes(draw, value)) +
   geom_line(size = 0.1) +
