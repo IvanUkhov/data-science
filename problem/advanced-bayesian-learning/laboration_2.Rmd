@@ -255,12 +255,23 @@ sample_DPM <- function(x, m, l,
   draws
 }
 
-predictive_check <- function(draws, reference, size = 1000, type = 'cdf', ...) {
+check_predictive <- function(draws, reference, size = 1000, type = 'cdf', ...) {
   grid <- seq(min(reference$x) - 5, to = max(reference$x) + 5, length.out = size)
   sample <- evaluate_Pm(draws, grid, type = type)
   ggplot() +
     geom_reference(reference, type = type, ...) +
     geom_line(data = sample, mapping = aes(x, y, group = .draw), size = 0.25) +
+    labs(x = 'Velocity', y = 'Density')
+}
+
+summarize_inference <- function(draws, reference, size = 1000, type = 'cdf', ...) {
+  grid <- seq(min(reference$x) - 5, to = max(reference$x) + 5, length.out = size)
+  sample <- evaluate_Pm(draws, grid, type = type) %>%
+    group_by(x) %>%
+    summarize(y_mean = mean(y), .groups = 'drop')
+  ggplot() +
+    geom_reference(reference, type = type, ...) +
+    geom_line(data = sample, mapping = aes(x, y_mean), size = 0.25) +
     labs(x = 'Velocity', y = 'Density')
 }
 ```
@@ -308,12 +319,20 @@ evaluate_Pm_(list(stick = list(p = c(0.3, 0.7)),
 set.seed(42)
 
 draws <- sample_DPM(data0$x, 25, 1000)
-predictive_check(sample(tail(draws, length(draws) / 2), 10), data0,
+check_predictive(sample(tail(draws, length(draws) / 2), 10), data0,
                  type = 'histogram')
 ```
 
 ```{r}
-tibble(value = sapply(draws, function(draw) draw$lambda)) %>%
+set.seed(42)
+
+draws <- sample_DPM(data$x, 25, 1000)
+check_predictive(sample(tail(draws, length(draws) / 2), 10), data,
+                 type = 'histogram')
+```
+
+```{r}
+tibble(value = sapply(draws, function(draw) length(unique(draw$k)))) %>%
   mutate(draw = row_number()) %>%
   ggplot(aes(draw, value)) +
   geom_line(size = 0.1) +
@@ -321,9 +340,6 @@ tibble(value = sapply(draws, function(draw) draw$lambda)) %>%
 ```
 
 ```{r}
-set.seed(42)
-
-draws <- sample_DPM(data$x, 25, 1000)
-predictive_check(sample(tail(draws, length(draws) / 2), 10), data,
-                 type = 'histogram')
+summarize_inference(tail(draws, length(draws) / 2), data,
+                    type = 'histogram')
 ```
