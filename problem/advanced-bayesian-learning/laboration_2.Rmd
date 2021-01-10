@@ -51,7 +51,7 @@ ggplot() +
 stick_break <- function(l, alpha, beta) {
   q <- rbeta(l, shape1 = alpha, shape2 = beta)
   q <- c(head(q, -1), 1)
-  list(p = q * c(1, cumprod(1 - head(q, -1))))
+  list(p = q * c(1, cumprod(1 - head(q, -1))), q = q)
 }
 
 nu_prior <- function(lambda = 1, mu0 = 0, sigma0 = 1) {
@@ -147,11 +147,11 @@ sample_Plambda_prior <- function(l, alpha0 = 2, beta0 = 0.1) {
   rgamma(l, alpha0, beta0)
 }
 
-sample_Plambda_posterior <- function(l, p, alpha0 = 2, beta0 = 0.1) {
+sample_Plambda_posterior <- function(l, q, alpha0 = 2, beta0 = 0.1) {
   sample_Plambda_prior(
     l = l,
-    alpha0 = alpha0 + length(p) - 1,
-    beta0 = beta0 - log(tail(p, 1))
+    alpha0 = alpha0 + length(q) - 1,
+    beta0 = beta0 - sum(log(head(q, -1)))
   )
 }
 
@@ -223,7 +223,7 @@ update_theta <- function(x, state, ...) {
 }
 
 update_lambda <- function(x, state, ...) {
-  sample_Plambda_posterior(1, state$stick$p, ...)
+  sample_Plambda_posterior(1, state$stick$q, ...)
 }
 
 sample_DPM <- function(x, m, l,
