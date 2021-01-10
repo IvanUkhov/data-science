@@ -4,6 +4,7 @@ output: html_document
 ---
 
 ```{r, message = FALSE}
+library(MASS)
 library(tidyverse)
 
 theme_set(theme_minimal())
@@ -29,8 +30,7 @@ geom_reference <- function(data, type = 'cdf', binwidth = 1) {
 ```
 
 ```{r}
-url <- 'https://raw.githubusercontent.com/mattiasvillani/AdvBayesLearnCourse/master/Labs/GalaxyData.dat'
-data <- readr::read_table(url, col_names = c('x'), col_types = list(x = 'd'))
+data <- tibble(x = galaxies / 1000)
 ```
 
 ```{r}
