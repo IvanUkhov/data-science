@@ -51,7 +51,7 @@ ggplot() +
 stick_break <- function(l, alpha, beta) {
   q <- rbeta(l, shape1 = alpha, shape2 = beta)
   q <- c(head(q, -1), 1)
-  q * c(1, cumprod(1 - head(q, -1)))
+  list(p = q * c(1, cumprod(1 - head(q, -1))))
 }
 
 nu_prior <- function(lambda = 1, mu0 = 0, sigma0 = 1) {
@@ -70,7 +70,7 @@ nu_posterior <- function(x, lambda = 1, mu0 = 0, sigma0 = 1) {
 
 sample_DP <- function(l, nu) {
   x <- nu$sample_P0(l)
-  p <- stick_break(l, 1, nu$lambda)
+  p <- stick_break(l, 1, nu$lambda)$p
   tibble(x = x, p = p)
 }
 
@@ -167,7 +167,7 @@ evaluate_Pm_ <- function(draw, grid, type = 'cdf') {
   } else if (type == 'histogram') {
     method <- dnorm
   }
-  bind_cols(draw$theta, tibble(p = draw$p)) %>%
+  bind_cols(draw$theta, tibble(p = draw$stick$p)) %>%
     mutate(.component = row_number()) %>%
     select(.component, everything()) %>%
     mutate(data = map2(mu, tau, function(mu, tau) {
@@ -197,18 +197,18 @@ count_subjects <- function(m, k) {
 }
 
 update_k <- function(x, state) {
-  m <- length(state$p)
+  m <- length(state$stick$p)
   n <- length(x)
   x <- rep(x, each = m)
   theta <- state$theta %>% slice(rep(1:m, n))
   p <- matrix(evaluate_Px(x, theta), nrow = m, ncol = n)
-  p <- sweep(p, 1, state$p, `*`)
+  p <- sweep(p, 1, state$stick$p, `*`)
   p <- sweep(p, 2, colSums(p), `/`)
   apply(p, 2, function(p) sample(1:m, 1, prob = p))
 }
 
-update_p <- function(x, state) {
-  m <- length(state$p)
+update_stick <- function(x, state) {
+  m <- length(state$stick$p)
   n <- count_subjects(m, state$k)
   alpha <- 1 + n
   beta <- state$lambda + sum(n) - cumsum(n)
@@ -216,14 +216,14 @@ update_p <- function(x, state) {
 }
 
 update_theta <- function(x, state, ...) {
-  m <- length(state$p)
+  m <- length(state$stick$p)
   sapply(1:m, function(i) sample_P0_posterior(1, x[state$k == i], ...),
          simplify = FALSE) %>%
     bind_rows()
 }
 
 update_lambda <- function(x, state, ...) {
-  sample_Plambda_posterior(1, state$p, ...)
+  sample_Plambda_posterior(1, state$stick$p, ...)
 }
 
 sample_DPM <- function(x, m, l,
@@ -233,7 +233,7 @@ sample_DPM <- function(x, m, l,
                        n0 = 2) {
   state <- list(
     lambda = 1,
-    p = stick_break(m, 1, 1),
+    stick = stick_break(m, 1, 1),
     k = sample(1:m, length(x), replace = TRUE),
     theta = tibble(mu = rep(mu0_x, m),
                    tau = rep(1 / sigma0_x^2, m))
@@ -241,7 +241,7 @@ sample_DPM <- function(x, m, l,
   draws <- vector('list', l)
   for(i in 1:l) {
     state$k <- update_k(x, state)
-    state$p <- update_p(x, state)
+    state$stick <- update_stick(x, state)
     state$theta <- update_theta(x, state,
                                 mu0 = mu0_x,
                                 n0 = n0,
@@ -295,7 +295,8 @@ sample_P0_posterior(1000, data$x,
 data0 <- tibble(i = rbinom(100, 1, 0.3)) %>%
   mutate(x = i * rnorm(n(), -5, 1) + (1 - i) * rnorm(n(), 5, 1))
 
-evaluate_Pm_(list(p = c(0.3, 0.7), theta = tibble(mu = c(-5, 5), tau = c(1, 1))),
+evaluate_Pm_(list(stick = list(p = c(0.3, 0.7)),
+                  theta = tibble(mu = c(-5, 5), tau = c(1, 1))),
              seq(-10, to = 10, length.out = 1000),
              type = 'pdf') %>%
   ggplot(aes(x, y)) +
