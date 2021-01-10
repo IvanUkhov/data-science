@@ -231,25 +231,28 @@ sample_DPM <- function(x, m, l,
                        sigma0_x = sd(x),
                        sigma0_lambda = 10,
                        n0 = 2) {
+  theta_prior <- list(
+    mu0 = mu0_x,
+    n0 = n0,
+    alpha0 = n0 / 2,
+    beta0 = n0 * sigma0_x^2 / 2
+  )
+  lambda_prior <- list(
+    alpha0 = n0,
+    beta0 = sqrt(n0) / sigma0_lambda
+  )
   state <- list(
-    lambda = 1,
-    stick = stick_break(m, 1, 1),
     k = sample(1:m, length(x), replace = TRUE),
-    theta = tibble(mu = rep(mu0_x, m),
-                   tau = rep(1 / sigma0_x^2, m))
+    stick = stick_break(m, 1, 1),
+    theta = do.call(sample_P0_prior, c(list(m), theta_prior)),
+    lambda = 1
   )
   draws <- vector('list', l)
   for(i in 1:l) {
     state$k <- update_k(x, state)
     state$stick <- update_stick(x, state)
-    state$theta <- update_theta(x, state,
-                                mu0 = mu0_x,
-                                n0 = n0,
-                                alpha0 = n0 / 2,
-                                beta0 = n0 * sigma0_x^2 / 2)
-    state$lambda <- update_lambda(x, state,
-                                  alpha0 = n0,
-                                  beta0 = sqrt(n0) / sigma0_lambda)
+    state$theta <- do.call(update_theta, c(list(x, state), theta_prior))
+    state$lambda <- do.call(update_lambda, c(list(x, state), lambda_prior))
     draws[[i]] <- state
   }
   draws
