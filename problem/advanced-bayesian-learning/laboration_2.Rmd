@@ -227,6 +227,7 @@ update_lambda <- function(x, state, ...) {
 }
 
 sample_DPM <- function(x, m, l,
+                       lambda0 = 1,
                        mu0_x = mean(x),
                        sigma0_x = sd(x),
                        sigma0_lambda = 10,
@@ -243,9 +244,9 @@ sample_DPM <- function(x, m, l,
   )
   state <- list(
     k = sample(1:m, length(x), replace = TRUE),
-    stick = stick_break(m, 1, 1),
+    stick = stick_break(m, 1, lambda0),
     theta = do.call(sample_P0_prior, c(list(m), theta_prior)),
-    lambda = 1
+    lambda = lambda0
   )
   draws <- vector('list', l)
   for(i in 1:l) {
