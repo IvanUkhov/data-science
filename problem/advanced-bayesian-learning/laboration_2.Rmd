@@ -199,31 +199,49 @@ count_subjects <- function(m, k) {
 update_k <- function(x, state, prior_only = FALSE) {
   m <- length(state$stick$p)
   n <- length(x)
-  x <- rep(x, each = m)
-  theta <- state$theta %>% slice(rep(1:m, n))
-  p <- matrix(evaluate_Px(x, theta), nrow = m, ncol = n)
-  p <- sweep(p, 1, state$stick$p, `*`)
-  p <- sweep(p, 2, colSums(p), `/`)
+  if (prior_only) {
+    x <- rep(x, each = m)
+    theta <- state$theta %>% slice(rep(1:m, n))
+    p <- matrix(evaluate_Px(x, theta), nrow = m, ncol = n)
+    p <- sweep(p, 1, state$stick$p, `*`)
+    p <- sweep(p, 2, colSums(p), `/`)
+  } else {
+    p <- matrix(rep(1 / m, m * n), nrow = m, ncol = n)
+  }
   apply(p, 2, function(p) sample(1:m, 1, prob = p))
 }
 
 update_stick <- function(x, state, prior_only = FALSE) {
   m <- length(state$stick$p)
-  n <- count_subjects(m, state$k)
-  alpha <- 1 + n
-  beta <- state$lambda + sum(n) - cumsum(n)
+  if (prior_only) {
+    alpha <- 1
+    beta <- state$lambda
+  } else {
+    n <- count_subjects(m, state$k)
+    alpha <- 1 + n
+    beta <- state$lambda + sum(n) - cumsum(n)
+  }
   stick_break(m, alpha, beta)
 }
 
 update_theta <- function(x, state, prior_only = FALSE, ...) {
   m <- length(state$stick$p)
-  sapply(1:m, function(i) sample_P0_posterior(1, x[state$k == i], ...),
-         simplify = FALSE) %>%
-    bind_rows()
+  if (prior_only) {
+    sapply(1:m, function(i) sample_P0_prior(1, ...), simplify = FALSE) %>%
+      bind_rows()
+  } else {
+    sapply(1:m, function(i) sample_P0_posterior(1, x[state$k == i], ...),
+           simplify = FALSE) %>%
+      bind_rows()
+  }
 }
 
 update_lambda <- function(x, state, prior_only = FALSE, ...) {
-  sample_Plambda_posterior(1, state$stick$q, ...)
+  if (prior_only) {
+    sample_Plambda_prior(1, ...)
+  } else {
+    sample_Plambda_posterior(1, state$stick$q, ...)
+  }
 }
 
 sample_DPM <- function(x, m, l,
@@ -316,6 +334,14 @@ evaluate_Pm_(list(stick = list(p = c(0.3, 0.7)),
   ggplot(aes(x, y)) +
   geom_line() +
   labs(y = 'Density')
+```
+
+```{r}
+set.seed(42)
+
+draws <- sample_DPM(data0$x, 25, 1000, prior_only = TRUE)
+check_predictive(sample(tail(draws, length(draws) / 2), 10), data0,
+                 type = 'histogram')
 ```
 
 ```{r}
