@@ -283,7 +283,7 @@ summarize_inference <- function(draws, reference, size = 1000, type = 'cdf', ...
 ```{r}
 set.seed(42)
 
-sample_P0_prior(1000, mu0 = mean(data$x)) %>%
+sample_P0_prior(1000, mu0 = mean(data$x), sigma0 = sd(data$x)) %>%
   ggplot() +
   geom_vline(xintercept = mean(data$x), color = 'gray70') +
   geom_density(aes(mu)) +
