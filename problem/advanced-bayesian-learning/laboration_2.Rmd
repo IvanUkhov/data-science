@@ -119,13 +119,13 @@ tibble(lambda = c(1, 10, 100, 1000)) %>%
 # Mixing prior
 
 ```{r}
-sample_P0_prior <- function(l, mu0 = 0, kappa0 = 3, nu0 = 3, sigma0 = 1) {
+sample_Ptheta_prior <- function(l, mu0 = 0, kappa0 = 3, nu0 = 3, sigma0 = 1) {
   sigma <- sqrt((nu0 * sigma0^2) / rchisq(l, nu0))
   mu <- rnorm(l, mu0, sigma / sqrt(kappa0))
   tibble(mu = mu, sigma = sigma)
 }
 
-sample_P0_posterior <- function(l, x, mu0 = mean(x), kappa0 = 3, nu0 = 3, sigma0 = sd(x)) {
+sample_Ptheta_posterior <- function(l, x, mu0 = mean(x), kappa0 = 3, nu0 = 3, sigma0 = sd(x)) {
   n1 <- length(x)
   if (n1 == 0) {
     mu1 <- 0
@@ -134,7 +134,7 @@ sample_P0_posterior <- function(l, x, mu0 = mean(x), kappa0 = 3, nu0 = 3, sigma0
     mu1 <- mean(x)
     ss1 <- sum((x - mu1)^2)
   }
-  sample_P0_prior(
+  sample_Ptheta_prior(
     l = l,
     mu0 = kappa0 / (kappa0 + n1) * mu0 + n1 / (kappa0 + n1) * mu1,
     kappa0 = kappa0 + n1,
@@ -227,10 +227,10 @@ update_stick <- function(x, state, prior_only = FALSE) {
 update_theta <- function(x, state, prior_only = FALSE, ...) {
   m <- length(state$stick$p)
   if (prior_only) {
-    sapply(1:m, function(i) sample_P0_prior(1, ...), simplify = FALSE) %>%
+    sapply(1:m, function(i) sample_Ptheta_prior(1, ...), simplify = FALSE) %>%
       bind_rows()
   } else {
-    sapply(1:m, function(i) sample_P0_posterior(1, x[state$k == i], ...),
+    sapply(1:m, function(i) sample_Ptheta_posterior(1, x[state$k == i], ...),
            simplify = FALSE) %>%
       bind_rows()
   }
@@ -245,26 +245,29 @@ update_lambda <- function(x, state, prior_only = FALSE, ...) {
 }
 
 sample_DPM <- function(x, m, l,
-                       lambda0 = 1,
-                       mu0_x = mean(x),
-                       sigma0_x = sd(x),
-                       sigma0_lambda = 10,
                        n0 = 3,
+                       mu0 = mean(x),
+                       kappa0 = n0,
+                       nu0 = n0,
+                       sigma0 = sd(x),
+                       lambda0 = 1,
+                       alpha0 = n0,
+                       beta0 = sqrt(n0) / 10,
                        prior_only = FALSE) {
   theta_prior <- list(
-    mu0 = mu0_x,
-    kappa0 = n0,
-    nu0 = n0,
-    sigma0 = sigma0_x
+    mu0 = mu0,
+    kappa0 = kappa0,
+    nu0 = nu0,
+    sigma0 = sigma0
   )
   lambda_prior <- list(
-    alpha0 = n0,
-    beta0 = sqrt(n0) / sigma0_lambda
+    alpha0 = alpha0,
+    beta0 = beta0
   )
   state <- list(
     k = sample(1:m, length(x), replace = TRUE),
     stick = stick_break(m, 1, lambda0),
-    theta = do.call(sample_P0_prior, c(list(m), theta_prior)),
+    theta = do.call(sample_Ptheta_prior, c(list(m), theta_prior)),
     lambda = lambda0
   )
   draws <- vector('list', l)
@@ -306,7 +309,17 @@ summarize_inference <- function(draws, reference, size = 1000, type = 'cdf', ...
 ```{r}
 set.seed(42)
 
-sample_P0_prior(1000, mu0 = mean(data$x), sigma0 = sd(data$x)) %>%
+sample_Ptheta_prior(1000, mu0 = mean(data$x), sigma0 = sd(data$x)) %>%
+  ggplot() +
+  geom_vline(xintercept = sd(data$x), color = 'gray70') +
+  geom_density(aes(sigma)) +
+  labs(x = 'Velocity', y = 'Density')
+```
+
+```{r}
+set.seed(42)
+
+sample_Ptheta_posterior(1000, data$x) %>%
   ggplot() +
   geom_vline(xintercept = mean(data$x), color = 'gray70') +
   geom_density(aes(mu)) +
@@ -316,39 +329,8 @@ sample_P0_prior(1000, mu0 = mean(data$x), sigma0 = sd(data$x)) %>%
 ```{r}
 set.seed(42)
 
-sample_P0_posterior(1000, data$x) %>%
-  ggplot() +
-  geom_vline(xintercept = mean(data$x), color = 'gray70') +
-  geom_density(aes(mu)) +
-  labs(x = 'Velocity', y = 'Density')
-```
-
-```{r}
-data0 <- tibble(i = rbinom(100, 1, 0.3)) %>%
-  mutate(x = i * rnorm(n(), -5, 1) + (1 - i) * rnorm(n(), 5, 1))
-
-evaluate_Pm_(list(stick = list(p = c(0.3, 0.7)),
-                  theta = tibble(mu = c(-5, 5), sigma = c(1, 1))),
-             seq(-10, to = 10, length.out = 1000),
-             type = 'pdf') %>%
-  ggplot(aes(x, y)) +
-  geom_line() +
-  labs(y = 'Density')
-```
-
-```{r}
-set.seed(42)
-
-draws <- sample_DPM(data0$x, 25, 1000, prior_only = TRUE)
-check_predictive(sample(tail(draws, length(draws) / 2), 10), data0,
-                 type = 'histogram')
-```
-
-```{r}
-set.seed(42)
-
-draws <- sample_DPM(data0$x, 25, 1000)
-check_predictive(sample(tail(draws, length(draws) / 2), 10), data0,
+draws <- sample_DPM(data$x, 25, 1000, prior_only = TRUE)
+check_predictive(sample(tail(draws, length(draws) / 2), 10), data,
                  type = 'histogram')
 ```
 
