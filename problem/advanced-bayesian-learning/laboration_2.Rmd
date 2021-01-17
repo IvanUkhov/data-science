@@ -339,11 +339,11 @@ summarize_inference <- function(draws,
     geom_line(data = sample,
               mapping = aes(x, y_lower, color = 'Model'),
               linetype = 'dashed',
-              size = 0.25) +
+              size = 0.5) +
     geom_line(data = sample,
               mapping = aes(x, y_upper, color = 'Model'),
               linetype = 'dashed',
-              size = 0.25) +
+              size = 0.5) +
     geom_line(data = sample,
               mapping = aes(x, y_mean, color = 'Model'),
               size = 1) +
