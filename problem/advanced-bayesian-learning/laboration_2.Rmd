@@ -169,11 +169,11 @@ sample_Ptheta_posterior <- function(l, x, mu0 = mean(x), kappa0 = 1, nu0 = 3, si
   )
 }
 
-sample_Plambda_prior <- function(l, alpha0 = 2, beta0 = 0.1) {
+sample_Plambda_prior <- function(l, alpha0 = 3, beta0 = 0.1) {
   rgamma(l, alpha0, beta0)
 }
 
-sample_Plambda_posterior <- function(l, q, alpha0 = 2, beta0 = 0.1) {
+sample_Plambda_posterior <- function(l, q, alpha0 = 3, beta0 = 0.1) {
   sample_Plambda_prior(
     l = l,
     alpha0 = alpha0 + length(q) - 1,
@@ -373,6 +373,16 @@ sample_Ptheta_posterior(1000, data$x) %>%
   geom_vline(xintercept = mean(data$x), color = 'gray70', size = 1) +
   geom_density(aes(mu), color = 'gray30', size = 1) +
   labs(x = 'Velocity (1000 km/s)',
+       y = 'Probability density')
+```
+
+```{r}
+set.seed(42)
+
+tibble(lambda = sample_Plambda_prior(1000)) %>%
+  ggplot() +
+  geom_density(aes(lambda), color = 'gray30', size = 1) +
+  labs(x = TeX('Concentration parameter, $\\lambda$'),
        y = 'Probability density')
 ```
 
