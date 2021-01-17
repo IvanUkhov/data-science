@@ -119,14 +119,14 @@ tibble(lambda = c(1, 10, 100, 1000)) %>%
 # Mixing prior
 
 ```{r}
-sample_Ptheta_prior <- function(l, mu0 = 0, kappa0 = 1, nu0 = 4, sigma0 = 1) {
+sample_Ptheta_prior <- function(l, mu0 = 0, kappa0 = 1, nu0 = 3, sigma0 = 1) {
   sigma <- sqrt((nu0 * sigma0^2) / rchisq(l, nu0))
   # sigma <- sqrt(1 / rgamma(l, nu0 / 2, nu0 * sigma0^2 / 2))
   mu <- rnorm(l, mu0, sigma / sqrt(kappa0))
   tibble(mu = mu, sigma = sigma)
 }
 
-sample_Ptheta_posterior <- function(l, x, mu0 = mean(x), kappa0 = 1, nu0 = 4, sigma0 = sd(x)) {
+sample_Ptheta_posterior <- function(l, x, mu0 = mean(x), kappa0 = 1, nu0 = 3, sigma0 = sd(x)) {
   n1 <- length(x)
   if (n1 == 0) {
     mu1 <- 0
@@ -246,7 +246,7 @@ update_lambda <- function(x, state, prior_only = FALSE, ...) {
 }
 
 sample_DPM <- function(x, m, l,
-                       n0 = 4,
+                       n0 = 3,
                        mu0 = mean(x),
                        kappa0 = n0,
                        nu0 = n0,
