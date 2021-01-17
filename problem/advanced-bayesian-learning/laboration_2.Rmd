@@ -5,27 +5,36 @@ output: html_document
 
 ```{r, message = FALSE}
 library(MASS)
+library(latex2exp)
 library(tidyverse)
 
-theme_set(theme_minimal())
+theme_set(theme_minimal(base_size = 14))
 ```
 
 ```{r}
-geom_reference <- function(data, type = 'cdf', binwidth = 1, color = 'gray70') {
+geom_reference <- function(data, type = 'cdf', binwidth = 1) {
   if (type == 'cdf') {
     stat_ecdf(data = data,
-              mapping = aes(x),
-              color = color)
+              mapping = aes(x, color = 'Observation'))
   } else if (type == 'pdf') {
-    geom_density(data = data,
-                 mapping = aes(x),
-                 color = color)
+    geom_histogram(data = data,
+                   mapping = aes(x,
+                                 y = ..count.. / sum(..count..),
+                                 color = 'Observation'),
+                   binwidth = binwidth,
+                   fill = 'gray70')
   } else if (type == 'histogram') {
     geom_histogram(data = data,
-                   mapping = aes(x, y = ..count.. / sum(..count..)),
+                   mapping = aes(x, color = 'Observation'),
                    binwidth = binwidth,
-                   fill = color)
+                   fill = 'gray70')
   }
+}
+
+scale_color <- function() {
+  scale_color_manual(breaks = c('Observation', 'Model'),
+                     values = c('Observation' = 'gray70',
+                                'Model' = 'black'))
 }
 ```
 
@@ -36,13 +45,19 @@ data <- tibble(x = galaxies / 1000)
 ```{r}
 ggplot() +
   geom_reference(data) +
-  labs(x = 'Velocity', y = 'Probability')
+  labs(x = 'Velocity (1000 km/s)',
+       y = 'Probability') +
+  scale_color() +
+  theme(legend.position = 'none')
 ```
 
 ```{r}
 ggplot() +
   geom_reference(data, type = 'histogram') +
-  labs(x = 'Velocity', y = 'Density')
+  labs(x = 'Velocity (1000 km/s)',
+       y = 'Number of galaxies') +
+  scale_color() +
+  theme(legend.position = 'none')
 ```
 
 # Direct prior
@@ -80,8 +95,12 @@ plot_distribution <- function(sample, reference) {
     mutate(p = cumsum(p))
   ggplot() +
     geom_reference(reference) +
-    geom_line(data = sample, mapping = aes(x, p)) +
-    labs(x = 'Velocity', y = 'Probability')
+    geom_line(data = sample, mapping = aes(x, p, color = 'Model')) +
+    scale_color() +
+    labs(x = 'Velocity (1000 km/s)',
+         y = 'Probability') +
+    theme(legend.title = element_blank(),
+          legend.position = 'top')
 }
 ```
 
@@ -94,10 +113,12 @@ tibble(lambda = c(1, 10, 100, 1000)) %>%
                                                       mu0 = mean(data$x),
                                                       sigma0 = sd(data$x))))) %>%
   unnest(data) %>%
-  mutate(lambda = str_c('Prior volume = ', lambda)) %>%
+  mutate(lambda = str_c('$\\lambda$ = ', lambda)) %>%
   group_by(lambda) %>%
   plot_distribution(data) +
-  facet_wrap(vars(lambda), ncol = 1)
+  facet_wrap(vars(lambda),
+             ncol = 1,
+             labeller = as_labeller(TeX, default = label_parsed))
 ```
 
 ```{r, fig.asp = 1}
@@ -110,10 +131,12 @@ tibble(lambda = c(1, 10, 100, 1000)) %>%
                                                           mu0 = mean(data$x),
                                                           sigma0 = sd(data$x))))) %>%
   unnest(data) %>%
-  mutate(lambda = str_c('Prior volume = ', lambda)) %>%
+  mutate(lambda = str_c('$\\lambda$ = ', lambda)) %>%
   group_by(lambda) %>%
   plot_distribution(data) +
-  facet_wrap(vars(lambda), ncol = 1)
+  facet_wrap(vars(lambda),
+             ncol = 1,
+             labeller = as_labeller(TeX, default = label_parsed))
 ```
 
 # Mixing prior
@@ -121,7 +144,6 @@ tibble(lambda = c(1, 10, 100, 1000)) %>%
 ```{r}
 sample_Ptheta_prior <- function(l, mu0 = 0, kappa0 = 1, nu0 = 3, sigma0 = 1) {
   sigma <- sqrt((nu0 * sigma0^2) / rchisq(l, nu0))
-  # sigma <- sqrt(1 / rgamma(l, nu0 / 2, nu0 * sigma0^2 / 2))
   mu <- rnorm(l, mu0, sigma / sqrt(kappa0))
   tibble(mu = mu, sigma = sigma)
 }
@@ -164,8 +186,6 @@ evaluate_Pm_ <- function(draw, grid, type = 'cdf') {
   if (type == 'cdf') {
     method <- pnorm
   } else if (type == 'pdf') {
-    method <- dnorm
-  } else if (type == 'histogram') {
     method <- dnorm
   }
   bind_cols(draw$theta, tibble(p = draw$stick$p)) %>%
@@ -291,8 +311,13 @@ check_predictive <- function(draws, reference, size = 1000, type = 'cdf', ...) {
   sample <- evaluate_Pm(draws, grid, type = type)
   ggplot() +
     geom_reference(reference, type = type, ...) +
-    geom_line(data = sample, mapping = aes(x, y, group = .draw), size = 0.25) +
-    labs(x = 'Velocity', y = 'Density')
+    geom_line(data = sample,
+              mapping = aes(x, y, color = 'Model', group = .draw),
+              size = 0.25) +
+    scale_color() +
+    labs(x = 'Velocity (1000 km/s)',
+         y = 'Probability density') +
+    theme(legend.position = 'none')
 }
 
 summarize_inference <- function(draws,
@@ -307,13 +332,18 @@ summarize_inference <- function(draws,
               y_upper = quantile(y, 1 - (1 - probability) / 2),
               .groups = 'drop')
   ggplot() +
-    geom_reference(reference, type = type, color = 'gray90', ...) +
+    geom_reference(reference, type = type, ...) +
     geom_ribbon(data = sample,
                 mapping = aes(x, ymin = y_lower, ymax = y_upper),
                 fill = 'royalblue3',
                 alpha = 0.25) +
-    geom_line(data = sample, mapping = aes(x, y_mean), size = 0.25) +
-    labs(x = 'Velocity', y = 'Density')
+    geom_line(data = sample,
+              mapping = aes(x, y_mean, color = 'Model'),
+              size = 0.25) +
+    scale_color() +
+    labs(x = 'Velocity (1000 km/s)',
+         y = 'Probability density') +
+    theme(legend.position = 'none')
 }
 ```
 
@@ -324,7 +354,8 @@ sample_Ptheta_prior(1000, mu0 = mean(data$x), sigma0 = sd(data$x)) %>%
   ggplot() +
   geom_vline(xintercept = mean(data$x), color = 'gray70') +
   geom_density(aes(mu)) +
-  labs(x = 'Velocity', y = 'Density')
+  labs(x = 'Velocity (1000 km/s)',
+       y = 'Probability density')
 ```
 
 ```{r}
@@ -334,15 +365,16 @@ sample_Ptheta_posterior(1000, data$x) %>%
   ggplot() +
   geom_vline(xintercept = mean(data$x), color = 'gray70') +
   geom_density(aes(mu)) +
-  labs(x = 'Velocity', y = 'Density')
+  labs(x = 'Velocity (1000 km/s)',
+       y = 'Probability density')
 ```
 
 ```{r}
 set.seed(42)
 
 draws <- sample_DPM(data$x, 25, 1000, kappa0 = 0.01, prior_only = TRUE)
-check_predictive(sample(tail(draws, length(draws) / 2), 10), data,
-                 type = 'histogram')
+check_predictive(sample(tail(draws, length(draws) / 2), 2), data,
+                 type = 'pdf')
 ```
 
 ```{r}
@@ -350,7 +382,7 @@ set.seed(42)
 
 draws <- sample_DPM(data$x, 25, 1000, kappa0 = 0.01)
 check_predictive(sample(tail(draws, length(draws) / 2), 10), data,
-                 type = 'histogram')
+                 type = 'pdf')
 ```
 
 ```{r}
@@ -362,6 +394,5 @@ tibble(value = sapply(draws, function(draw) length(unique(draw$k)))) %>%
 ```
 
 ```{r}
-summarize_inference(tail(draws, length(draws) / 2), data,
-                    type = 'histogram')
+summarize_inference(tail(draws, length(draws) / 2), data, type = 'pdf')
 ```
