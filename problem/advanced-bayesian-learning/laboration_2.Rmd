@@ -11,20 +11,20 @@ theme_set(theme_minimal())
 ```
 
 ```{r}
-geom_reference <- function(data, type = 'cdf', binwidth = 1) {
+geom_reference <- function(data, type = 'cdf', binwidth = 1, color = 'gray70') {
   if (type == 'cdf') {
     stat_ecdf(data = data,
               mapping = aes(x),
-              color = 'gray70')
+              color = color)
   } else if (type == 'pdf') {
     geom_density(data = data,
                  mapping = aes(x),
-                 color = 'gray70')
+                 color = color)
   } else if (type == 'histogram') {
     geom_histogram(data = data,
                    mapping = aes(x, y = ..count.. / sum(..count..)),
                    binwidth = binwidth,
-                   fill = 'gray70')
+                   fill = color)
   }
 }
 ```
@@ -295,13 +295,23 @@ check_predictive <- function(draws, reference, size = 1000, type = 'cdf', ...) {
     labs(x = 'Velocity', y = 'Density')
 }
 
-summarize_inference <- function(draws, reference, size = 1000, type = 'cdf', ...) {
+summarize_inference <- function(draws,
+                                reference, size = 1000,
+                                type = 'cdf',
+                                probability = 0.95, ...) {
   grid <- seq(min(reference$x) - 5, to = max(reference$x) + 5, length.out = size)
   sample <- evaluate_Pm(draws, grid, type = type) %>%
     group_by(x) %>%
-    summarize(y_mean = mean(y), .groups = 'drop')
+    summarize(y_mean = mean(y),
+              y_lower = quantile(y, (1 - probability) / 2),
+              y_upper = quantile(y, 1 - (1 - probability) / 2),
+              .groups = 'drop')
   ggplot() +
-    geom_reference(reference, type = type, ...) +
+    geom_reference(reference, type = type, color = 'gray90', ...) +
+    geom_ribbon(data = sample,
+                mapping = aes(x, ymin = y_lower, ymax = y_upper),
+                fill = 'royalblue3',
+                alpha = 0.25) +
     geom_line(data = sample, mapping = aes(x, y_mean), size = 0.25) +
     labs(x = 'Velocity', y = 'Density')
 }
