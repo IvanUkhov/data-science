@@ -15,7 +15,8 @@ theme_set(theme_minimal(base_size = 14))
 geom_reference <- function(data, type = 'cdf', binwidth = 1) {
   if (type == 'cdf') {
     stat_ecdf(data = data,
-              mapping = aes(x, color = 'Observation'))
+              mapping = aes(x, color = 'Observation'),
+              size = 1)
   } else if (type == 'pdf') {
     geom_histogram(data = data,
                    mapping = aes(x,
@@ -34,7 +35,7 @@ geom_reference <- function(data, type = 'cdf', binwidth = 1) {
 scale_color <- function() {
   scale_color_manual(breaks = c('Observation', 'Model'),
                      values = c('Observation' = 'gray70',
-                                'Model' = 'black'))
+                                'Model' = 'gray30'))
 }
 ```
 
@@ -95,7 +96,9 @@ plot_distribution <- function(sample, reference) {
     mutate(p = cumsum(p))
   ggplot() +
     geom_reference(reference) +
-    geom_line(data = sample, mapping = aes(x, p, color = 'Model')) +
+    geom_line(data = sample,
+              mapping = aes(x, p, color = 'Model'),
+              size = 1) +
     scale_color() +
     labs(x = 'Velocity (1000 km/s)',
          y = 'Probability') +
@@ -313,7 +316,7 @@ check_predictive <- function(draws, reference, size = 1000, type = 'cdf', ...) {
     geom_reference(reference, type = type, ...) +
     geom_line(data = sample,
               mapping = aes(x, y, color = 'Model', group = .draw),
-              size = 0.25) +
+              size = 1) +
     scale_color() +
     labs(x = 'Velocity (1000 km/s)',
          y = 'Probability density') +
@@ -333,13 +336,17 @@ summarize_inference <- function(draws,
               .groups = 'drop')
   ggplot() +
     geom_reference(reference, type = type, ...) +
-    geom_ribbon(data = sample,
-                mapping = aes(x, ymin = y_lower, ymax = y_upper),
-                fill = 'royalblue3',
-                alpha = 0.25) +
+    geom_line(data = sample,
+              mapping = aes(x, y_lower, color = 'Model'),
+              linetype = 'dashed',
+              size = 0.25) +
+    geom_line(data = sample,
+              mapping = aes(x, y_upper, color = 'Model'),
+              linetype = 'dashed',
+              size = 0.25) +
     geom_line(data = sample,
               mapping = aes(x, y_mean, color = 'Model'),
-              size = 0.25) +
+              size = 1) +
     scale_color() +
     labs(x = 'Velocity (1000 km/s)',
          y = 'Probability density') +
@@ -352,8 +359,8 @@ set.seed(42)
 
 sample_Ptheta_prior(1000, mu0 = mean(data$x), sigma0 = sd(data$x)) %>%
   ggplot() +
-  geom_vline(xintercept = mean(data$x), color = 'gray70') +
-  geom_density(aes(mu)) +
+  geom_vline(xintercept = mean(data$x), color = 'gray70', size = 1) +
+  geom_density(aes(mu), color = 'gray30', size = 1) +
   labs(x = 'Velocity (1000 km/s)',
        y = 'Probability density')
 ```
@@ -363,8 +370,8 @@ set.seed(42)
 
 sample_Ptheta_posterior(1000, data$x) %>%
   ggplot() +
-  geom_vline(xintercept = mean(data$x), color = 'gray70') +
-  geom_density(aes(mu)) +
+  geom_vline(xintercept = mean(data$x), color = 'gray70', size = 1) +
+  geom_density(aes(mu), color = 'gray30', size = 1) +
   labs(x = 'Velocity (1000 km/s)',
        y = 'Probability density')
 ```
@@ -372,24 +379,22 @@ sample_Ptheta_posterior(1000, data$x) %>%
 ```{r}
 set.seed(42)
 
-draws <- sample_DPM(data$x, 25, 1000, kappa0 = 0.01, prior_only = TRUE)
-check_predictive(sample(tail(draws, length(draws) / 2), 2), data,
-                 type = 'pdf')
+draws0 <- sample_DPM(data$x, 25, 1000, kappa0 = 0.01, prior_only = TRUE)
+check_predictive(sample(tail(draws0, length(draws0) / 2), 2), data, type = 'pdf')
 ```
 
 ```{r}
 set.seed(42)
 
 draws <- sample_DPM(data$x, 25, 1000, kappa0 = 0.01)
-check_predictive(sample(tail(draws, length(draws) / 2), 10), data,
-                 type = 'pdf')
+check_predictive(sample(tail(draws, length(draws) / 2), 2), data, type = 'pdf')
 ```
 
 ```{r}
 tibble(value = sapply(draws, function(draw) length(unique(draw$k)))) %>%
   mutate(draw = row_number()) %>%
   ggplot(aes(draw, value)) +
-  geom_line(size = 0.1) +
+  geom_line(size = 0.25) +
   labs(x = 'Iteration', y = 'Position')
 ```
 
