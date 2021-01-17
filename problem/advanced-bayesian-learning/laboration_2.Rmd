@@ -201,13 +201,13 @@ update_k <- function(x, state, prior_only = FALSE) {
   m <- length(state$stick$p)
   n <- length(x)
   if (prior_only) {
+    p <- matrix(rep(1 / m, m * n), nrow = m, ncol = n)
+  } else {
     x <- rep(x, each = m)
     theta <- state$theta %>% slice(rep(1:m, n))
     p <- matrix(evaluate_Px(x, theta), nrow = m, ncol = n)
     p <- sweep(p, 1, state$stick$p, `*`)
     p <- sweep(p, 2, colSums(p), `/`)
-  } else {
-    p <- matrix(rep(1 / m, m * n), nrow = m, ncol = n)
   }
   apply(p, 2, function(p) sample(1:m, 1, prob = p))
 }
